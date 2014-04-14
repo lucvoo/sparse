@@ -1,3 +1,5 @@
+archs	+= arm
+
 V	:= @
 Q	?= $(V:1=)
 CC	:= gcc
