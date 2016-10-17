@@ -1,0 +1,399 @@
+// SPDX-License-Identifier: MIT
+
+:	reg
+
+//// register
+reg:	REG		== %r0
+reg:	ARG		== %r0
+reg:	UNDEF
+reg:	VOID
+
+reg0:	reg		== %r0
+reg0:	ZERO		== %rz
+
+//// constants
+imm5:	CONST		// if range(0, 31)
+imm5:	ZERO
+
+simm:	CONST		// if range(0, 4095) [ << 12]
+simm:	ZERO
+
+pimm8:	CONST		// if range(0, 4095] * 8
+pimm4:	CONST		// if range(0, 4095] * 4
+pimm2:	CONST		// if range(0, 4095] * 2
+pimm1:	CONST		// if range(0, 4095] * 1
+
+imm16:	CONST		// if range(0, 65535)
+imm16:	ZERO		//
+
+//nimm:	CONST		// if range(-4095, 0)
+
+bimm:	CONST		// if "bitmask"
+
+bit:	CONST		// if == 1 << sh
+
+one:	CONST		// if == 1
+ones:	CONST		// if == -1
+
+zero:	ZERO
+const:	CONST
+
+// for now those cannot work: a pseudo is either PSEUDO_VAL or PSEUDO_REG
+// the following is just some hackery to make it seems it is working
+creg:	CONST		[4] => ldr	%rt, =%c0
+creg:	CONST		[2] => movw	%rt, #:lower16:%c0;  movt	%rt, #:upper16:%c0
+reg:	COPY(const)	[2] => movw	%rd, #:lower16:%c0;  movt	%rt, #:upper16:%c0
+creg:	imm16		[1] => mov	%rt, %c0
+creg:	ZERO		[1] => mov	%rt, #0
+reg:	creg		== %rt
+
+// TODO: constants synthesis with movn, movz, movk
+
+reg:	COPY.L(zero)	[1] => mov	%rd, wzr
+reg:	COPY.Q(zero)	[1] => mov	%rd, xzr
+reg:	COPY(imm16)	[1] => mov	%rd, %c1
+reg:	COPY(reg)	[1] => mov	%rd, %r1
+
+			// 'adr' is enough if label within +- 1MB
+reg:	SETVAL		[2] => adrp	%rt, %x; add	%rt, %rt, :lo12:%x
+
+
+//// shifted register
+sh:	CONST		    == %c0 // if range(0, 31) or range(0, 63)
+sreg:	reg		    == %r0
+sreg:	SHL(reg, sh)	[1] == %r1 lsl %c2
+sreg:	LSR(reg, sh)	[1] == %r1 lsr %c2
+sreg:	ASR(reg, sh)	[1] == %r1 asr %c2
+rreg:	reg		    == %r0
+rreg:	SHL(reg, sh)	[1] == %r1 lsl %c2
+rreg:	LSR(reg, sh)	[1] == %r1 lsr %c2
+rreg:	ASR(reg, sh)	[1] == %r1 asr %c2
+rreg:	ROR(reg, sh)	[1] == %r1 ror %c2
+
+//// extended register
+sxl:	SEXT#L(reg,sh)	== %r1
+zxl:	ZEXT#L(reg,sh)	== %r1
+sxq:	SEXT#Q(reg,sh)	== %r1
+zxq:	ZEXT#Q(reg,sh)	== %r1
+
+xsh:	CONST		    == %c0 // if range(0, 4)
+xt:	ZEXT#B(reg,sh)	    == %r1 uxtb
+xt:	ZEXT#H(reg,sh)	    == %r1 uxth
+xt:	zxl		    == %a0 uxtw
+xt:	zwq		    == %a0 uxtx
+xt:	SEXT#B(reg,sh)	    == %r1 sxtb
+xt:	SEXT#H(reg,sh)	    == %r1 sxth
+xt:	sxl		    == %a0 sxtw
+xt:	sxq		    == %a0 sxtx
+xreg:	SHL(reg,xsh)	[0] == %r1 lsl %c2
+xreg:	SHL(xt, xsh)	[0] == %a1 %c2
+xreg:	xt		[0] == %a0
+
+//// any register mode
+areg:	reg		    == %r0
+areg:	xreg		    == %a0
+areg:	sreg		    == %a0
+
+//// arithmetic
+reg:	ADD(reg, simm)	[1] => add	%rd, %r1, %c2
+reg:	ADD(reg, areg)	[1] => add	%rd, %r1, %a2
+reg:	ADD(areg, reg)	[1] => add	%rd, %r2, %a1
+reg:	SUB(reg, simm)	[1] => sub	%rd, %r1, %c2
+reg:	SUB(reg, areg)	[1] => sub	%rd, %r1, %r2
+reg:	NEG(sreg)	[1] => neg	%rd, %a1
+
+//// multiply/divide
+// cost 3/5 for 32/64 bit
+mul:	MUL(reg, reg)	    == %r1, %r2
+reg:	mul		[5] => mul	%rd, %a0
+reg:	ADD(mul,reg)	[5] => madd	%rd, %a1, %r2
+reg:	ADD(reg, mul)	[5] => madd	%rd, %a2, %r1
+reg:	SUB(reg, mul)	[5] => msub	%rd, %a2, %r1
+reg:	NEG(mul)	[5] => mneg	%rd, %a1
+
+// cost 4-20/36 for 32/64 bit
+reg:    DIVS(reg, reg)	[36] => sdiv	%rd, %r1, %r2
+reg:    DIVU(reg, reg)	[36] => udiv	%rd, %r1, %r2
+reg:    MODS(reg, reg)	[41] => sdiv	%rd, %r1, %r2; msub	%rd, %rd, %r2, %r1
+reg:    MODU(reg, reg)	[41] => udiv	%rd, %r1, %r2; msub	%rd, %rd, %r2, %r1
+
+//// logical
+nrreg:	NOT(rreg)	== %a1
+reg:	NOT(rreg)	[1] => mvn	%rd, %a1
+reg:	AND(reg, bimm)	[1] => and	%rd, %r1, %c2
+reg:	AND(reg, rreg)	[1] => and	%rd, %r1, %a2
+reg:	AND(rreg, reg)	[1] => and	%rd, %r2, %a1
+reg:	AND(reg, nrreg)	[1] => bic	%rd, %r1, %a2
+reg:	AND(nrreg, reg)	[1] => bic	%rd, %r2, %a1
+reg:	OR(reg, bimm)	[1] => orr	%rd, %r1, %c2
+reg:	OR(reg, rreg)	[1] => orr	%rd, %r1, %a2
+reg:	OR(rreg, reg)	[1] => orr	%rd, %r2, %a1
+reg:	OR(reg, nrreg)	[1] => orn	%rd, %r1, %a2
+reg:	OR(nrreg, reg)	[1] => orn	%rd, %r2, %a1
+reg:	XOR(reg, bimm)	[1] => eor	%rd, %r1, %c2
+reg:	XOR(reg, rreg)	[1] => eor	%rd, %r1, %a2
+reg:	XOR(rreg, reg)	[1] => eor	%rd, %r2, %a1
+reg:	XOR(reg, nrreg)	[1] => eon	%rd, %r1, %a2
+reg:	XOR(nrreg, reg)	[1] => eon	%rd, %r2, %a1
+reg:	NOT(XOR(reg, rreg))	[1] => eon	%rd, %r11, %a12
+reg:	NOT(XOR(rreg, reg))	[1] => eon	%rd, %r12, %a11
+
+//// shift/rotate
+sh:	CONST		// FIXME
+reg:	SHL(reg, sh)	[1] => lsl	%rd, %r1, %c2
+reg:	SHL(reg, reg)	[1] => lslv	%rd, %r1, %r2
+reg:	LSR(reg, sh)	[1] => lsr	%rd, %r1, %c2
+reg:	LSR(reg, reg)	[1] => lsrv	%rd, %r1, %r2
+reg:	ASR(reg, sh)	[1] => asr	%rd, %r1, %c2
+reg:	ASR(reg, reg)	[1] => asrv	%rd, %r1, %r2
+reg:	ROR(reg, sh)	[1] => ror	%rd, %r1, %c2
+reg:	ROR(reg, reg)	[1] => rorv	%rd, %r1, %r2
+
+//// sign/zero extension & truncation
+reg:	ZEXT#B(reg,sh)	[1] => uxtb	%rd, %r1
+reg:	ZEXT#H(reg,sh)	[1] => uxth	%rd, %r1
+reg:	ZEXT(reg, sh)	[1] => ubfx	%rd, %r1, #0, %c2
+reg:	zxl		[1] => uxtw	%rd, %a0
+reg:	SEXT#B(reg,sh)	[1] => sxtb	%rd, %r1
+reg:	SEXT#H(reg,sh)	[1] => sxth	%rd, %r1
+reg:	SEXT(reg, sh)	[1] => sbfx	%rd, %r1, #0, %c2
+reg:	sxl		[1] => sxtw	%rd, %a0
+
+reg:	TRUNC(reg, sh)	[1] => and	%rd, %r1, #((1 << %c2) - 1)
+
+//// bitfield extraction/insertion
+lsr:	LSR(reg, sh)	== %r1, %c1
+reg:	ZEXT(lsr, sh)		[1] => ubfx	%rd, %r11, %c12, %c2
+reg:	ZEXT(TRUNC(lsr,sh),sh)	[1] => ubfx	%rd, %r111, %c112, %c2
+
+reg:	SEXT(TRUNC(reg,sh),sh)	[1] => sbfx	%rd, %r11, #0, %c2
+reg:	SEXT(lsr, sh)		[1] => sbfx	%rd, %r11, %c12, %c2
+reg:	SEXT(TRUNC(lsr,sh),sh)	[1] => sbfx	%rd, %r111, %c112, %c2
+
+//// compare
+reg:	SET_EQ(condf, zero)	[1] => cset	%rd, %a1
+reg:	SET_NE(condt, zero)	[1] => cset	%rd, %a1
+reg:	ZEXT(condt, sh)		[1] => cset	%rd, %a1
+
+tsteq:	reg			[1] => cmp	%r0, #0
+tstne:	reg			[1] => cmp	%r0, #0
+
+tsteq:	SET_EQ(reg, simm)	[1] => cmp	%r1, %c2
+tsteq:	SET_EQ(reg, areg)	[1] => cmp	%r1, %a2
+tsteq:	SET_EQ(areg, reg)	[1] => cmp	%r2, %a1
+tstne:	SET_NE(reg, simm)	[1] => cmp	%r1, %c2
+tstne:	SET_NE(reg, areg)	[1] => cmp	%r1, %a2
+tstne:	SET_NE(areg, reg)	[1] => cmp	%r2, %a1
+
+tstlt:	SET_LT(reg, simm)	[1] => cmp	%r1, %c2
+tstlt:	SET_LT(reg, areg)	[1] => cmp	%r1, %a2
+tstgt:	SET_LT(areg, reg)	[1] => cmp	%r2, %a1
+tstle:	SET_LE(reg, simm)	[1] => cmp	%r1, %c2
+tstle:	SET_LE(reg, areg)	[1] => cmp	%r1, %a2
+tstge:	SET_LE(areg, reg)	[1] => cmp	%r2, %a2
+tstgt:	SET_GT(reg, simm)	[1] => cmp	%r1, %c2
+tstgt:	SET_GT(reg, areg)	[1] => cmp	%r1, %a2
+tstlt:	SET_GT(areg, reg)	[1] => cmp	%r2, %a1
+tstge:	SET_GE(reg, simm)	[1] => cmp	%r1, %c2
+tstge:	SET_GE(reg, areg)	[1] => cmp	%r1, %a2
+tstle:	SET_GE(areg, reg)	[1] => cmp	%r2, %a1
+
+tstls:	SET_BE(reg, simm)	[1] => cmp	%r1, %c2
+tstls:	SET_BE(reg, areg)	[1] => cmp	%r1, %a2
+tsths:	SET_BE(areg, reg)	[1] => cmp	%r2, %a1
+tstlo:	SET_B(reg, simm)	[1] => cmp	%r1, %c2
+tstlo:	SET_B(reg, areg)	[1] => cmp	%r1, %a2
+tsthi:	SET_B(areg, reg)	[1] => cmp	%r2, %a1
+tsths:	SET_AE(reg, simm)	[1] => cmp	%r1, %c2
+tsths:	SET_AE(reg, areg)	[1] => cmp	%r1, %a2
+tstls:	SET_AE(areg, reg)	[1] => cmp	%r2, %a1
+tsthi:	SET_A(reg, simm)	[1] => cmp	%r1, %c2
+tsthi:	SET_A(reg, areg)	[1] => cmp	%r1, %a2
+tstlo:	SET_A(areg, reg)	[1] => cmp	%r2, %a1
+
+//// compare negative
+tsteq:	SET_EQ(reg, NEG(areg))	[1] => cmn	%r1, %a2
+tsteq:	SET_EQ(areg, NEG(reg))	[1] => cmn	%r2, %a1
+tsteq:	SET_EQ(NEG(reg), simm)	[1] => cmn	%r1, %c2
+tsteq:	SET_EQ(NEG(reg), areg)	[1] => cmn	%r1, %a2
+tsteq:	SET_EQ(NEG(areg), reg)	[1] => cmn	%r2, %a1
+tstne:	SET_NE(reg, NEG(areg))	[1] => cmn	%r1, %a2
+tstne:	SET_NE(areg, NEG(reg))	[1] => cmn	%r2, %a1
+tstne:	SET_NE(NEG(reg), simm)	[1] => cmn	%r1, %c2
+tstne:	SET_NE(NEG(reg), areg)	[1] => cmn	%r1, %a2
+tstne:	SET_NE(NEG(areg), reg)	[1] => cmn	%r2, %a1
+
+tstgt:	SET_LT(NEG(reg), simm)	[1] => cmn	%r1, %c2
+tstge:	SET_LE(NEG(reg), simm)	[1] => cmn	%r1, %c2
+tstlt:	SET_GT(NEG(reg), simm)	[1] => cmn	%r1, %c2
+tstle:	SET_GE(NEG(reg), simm)	[1] => cmn	%r1, %c2
+
+// TODO others cmn for non-commutative compares
+
+
+condt:	tsteq		== eq
+condt:	tstne		== ne
+condt:	tstlt		== lt
+condt:	tstle		== le
+condt:	tstgt		== gt
+condt:	tstge		== ge
+condt:	tstlo		== lo
+condt:	tstls		== ls
+condt:	tsthi		== hi
+condt:	tsths		== hs
+
+condf:	tsteq		== ne
+condf:	tstne		== eq
+condf:	tstlt		== ge
+condf:	tstle		== gt
+condf:	tstgt		== le
+condf:	tstge		== lt
+condf:	tstlo		== hs
+condf:	tstls		== hi
+condf:	tsthi		== ls
+condf:	tsths		== lo
+
+tsteq:	 OR(condf,SET_EQ(reg,imm5))	[1] => ccmp	%r21, %c22, 4, %a1
+tsteq:	 OR(condf,SET_EQ(reg,reg))	[1] => ccmp	%r21, %r22, 4, %a1
+tstne:	 OR(condf,SET_NE(reg,imm5))	[1] => ccmp	%r21, %c22, 0, %a1
+tstne:	 OR(condf,SET_NE(reg,reg))	[1] => ccmp	%r21, %r22, 0, %a1
+tstle:	 OR(condf,SET_LE(reg,imm5))	[1] => ccmp	%r21, %c22, 4, %a1
+tstle:	 OR(condf,SET_LE(reg,reg))	[1] => ccmp	%r21, %r22, 4, %a1
+tstlt:	 OR(condf,SET_LT(reg,imm5))	[1] => ccmp	%r21, %c22, 1, %a1
+tstlt:	 OR(condf,SET_LT(reg,reg))	[1] => ccmp	%r21, %r22, 1, %a1
+tstge:	 OR(condf,SET_GE(reg,imm5))	[1] => ccmp	%r21, %c22, 0, %a1
+tstge:	 OR(condf,SET_GE(reg,reg))	[1] => ccmp	%r21, %r22, 0, %a1
+tstgt:	 OR(condf,SET_GT(reg,imm5))	[1] => ccmp	%r21, %c22, 0, %a1
+tstgt:	 OR(condf,SET_GT(reg,reg))	[1] => ccmp	%r21, %r22, 0, %a1
+tstls:	 OR(condf,SET_BE(reg,imm5))	[1] => ccmp	%r21, %c22, 0, %a1
+tstls:	 OR(condf,SET_BE(reg,reg))	[1] => ccmp	%r21, %r22, 0, %a1
+tstlo:	 OR(condf,SET_B(reg,imm5))	[1] => ccmp	%r21, %c22, 0, %a1
+tstlo:	 OR(condf,SET_B(reg,reg))	[1] => ccmp	%r21, %r22, 0, %a1
+tsths:	 OR(condf,SET_AE(reg,imm5))	[1] => ccmp	%r21, %c22, 2, %a1
+tsths:	 OR(condf,SET_AE(reg,reg))	[1] => ccmp	%r21, %r22, 2, %a1
+tsthi:	 OR(condf,SET_A(reg,imm5))	[1] => ccmp	%r21, %c22, 2, %a1
+tsthi:	 OR(condf,SET_A(reg,reg))	[1] => ccmp	%r21, %r22, 2, %a1
+
+tsteq:	AND(condt,SET_EQ(reg,imm5))	[1] => ccmp	%r21, %c22, 0, %a1
+tsteq:	AND(condt,SET_EQ(reg,reg))	[1] => ccmp	%r21, %r22, 0, %a1
+tstne:	AND(condt,SET_NE(reg,imm5))	[1] => ccmp	%r21, %c22, 4, %a1
+tstne:	AND(condt,SET_NE(reg,reg))	[1] => ccmp	%r21, %r22, 4, %a1
+tstle:	AND(condt,SET_LE(reg,imm5))	[1] => ccmp	%r21, %c22, 0, %a1
+tstle:	AND(condt,SET_LE(reg,reg))	[1] => ccmp	%r21, %r22, 0, %a1
+tstlt:	AND(condt,SET_LT(reg,imm5))	[1] => ccmp	%r21, %c22, 0, %a1
+tstlt:	AND(condt,SET_LT(reg,reg))	[1] => ccmp	%r21, %r22, 0, %a1
+tstge:	AND(condt,SET_GE(reg,imm5))	[1] => ccmp	%r21, %c22, 1, %a1
+tstge:	AND(condt,SET_GE(reg,reg))	[1] => ccmp	%r21, %r22, 1, %a1
+tstgt:	AND(condt,SET_GT(reg,imm5))	[1] => ccmp	%r21, %c22, 4, %a1
+tstgt:	AND(condt,SET_GT(reg,reg))	[1] => ccmp	%r21, %r22, 4, %a1
+tstls:	AND(condt,SET_BE(reg,imm5))	[1] => ccmp	%r21, %c22, 2, %a1
+tstls:	AND(condt,SET_BE(reg,reg))	[1] => ccmp	%r21, %r22, 2, %a1
+tstlo:	AND(condt,SET_B(reg,imm5))	[1] => ccmp	%r21, %c22, 2, %a1
+tstlo:	AND(condt,SET_B(reg,reg))	[1] => ccmp	%r21, %r22, 2, %a1
+tsths:	AND(condt,SET_AE(reg,imm5))	[1] => ccmp	%r21, %c22, 0, %a1
+tsths:	AND(condt,SET_AE(reg,reg))	[1] => ccmp	%r21, %r22, 0, %a1
+tsthi:	AND(condt,SET_A(reg,imm5))	[1] => ccmp	%r21, %c22, 0, %a1
+tsthi:	AND(condt,SET_A(reg,reg))	[1] => ccmp	%r21, %r22, 0, %a1
+
+
+// tst %rd, bimm
+// tst %rd, rreg
+
+:	CBR(condt)		[1] => b%a1	%b
+
+cbne:	SET_NE(reg, zero)	    == %r1
+cbeq:	SET_EQ(reg, zero)	    == %r1
+:	CBR(cbne)		[1] => cbnz	%a1, %b
+:	CBR(cbeq)		[1] => cbz	%a1, %b
+
+tbeq:	SET_EQ(AND(reg, bit), zero) == %r1
+:	CBR(AND(reg, bit))	[1] => tbnz	%r11, %b
+:	CBR(tbeq)		[1] => tbz	%a1, %b
+
+:	BR			[1] => b	%b
+:	COMPUTEDGOTO(reg)	[1] => br	%r1
+
+//// select
+reg:	condt				[1] => cset	%rd, %a0
+
+reg:	SEL(condf, reg0, reg0)		[1] => csel	%rd, %r2, %r3, %a1
+
+reg:	SEL(condt, reg0, ADD(reg, one))	[1] => csinc	%rd, %r2, %r31, %a1
+reg:	SEL(condf, ADD(reg, one), reg0)	[1] => csinc	%rd, %r21, %r3, %a1
+reg:	SEL(condt, reg0, one)		[1] => csinc	%rd, %r21, %rz, %a1
+reg:	SEL(condf, one, reg0)		[1] => csinc	%rd, %r3, %rz, %a1
+
+reg:	SEL(condt, reg0, NOT(reg))	[1] => csinv	%rd, %r2, %r31, %a1
+reg:	SEL(condf, NOT(reg), reg0)	[1] => csinv	%rd, %r21, %r3, %a1
+reg:	SEL(condt, reg0, ones)		[1] => csinv	%rd, %r2, %rz, %a1
+reg:	SEL(condf, ones, reg0)		[1] => csinv	%rd, %r3, %rz, %a1
+
+reg:	SEL(condt, reg0, NEG(reg))	[1] => csneg	%rd, %r2, %r31, %a1
+reg:	SEL(condf, NEG(reg), reg0)	[1] => csneg	%rd, %r21, %r3, %a1
+
+//// load and store
+// FIXME: need to add pre and post writeback modes
+
+asym:	GSYM		[1] => adrp	%rt, %l0; add	%rt, %rt, :lo12:%l0
+asym:	LSYM		[1] => add	%rt, sp, SP@%c0
+reg:	asym		    == %rp	// this make a PSEUDO_REG from a _SYM
+addr:	asym		    == %rp
+
+addr:	reg		    == %r0
+addr:	ADD(reg,reg)	    == %r1, %r2
+addr:	ADD(reg,zxl)	    == %r1, %a2, uxtw
+addr:	ADD(reg,sxl)	    == %r1, %a2, sxtw
+addr:	ADD(reg,sxq)	    == %r1, %a2, sxtx
+
+addr8:	addr
+addr8:	ADD(reg, pimm8)		== %r1, %c2
+addr8:	ADD(reg,SHL(reg,sh))	== %r1, %r21, lsl #%c22	// if sh == 3
+reg:	LOAD.Q(addr8)		[4] => ldr	%rd, [%a1]
+:	STORE.Q(addr8, reg)	[1] => str	%r2, [%a1]
+
+addr4:	addr
+addr4:	ADD(reg, pimm4)		== %r1, %c2
+addr4:	ADD(reg,SHL(reg,sh))	== %r1, %r21, lsl #%c22	// if sh == 2
+ldl:	LOAD.L(addr4)		== %a1
+ldl:	LOAD2.L(addr4)		== %a1
+reg:	ldl			[4] => ldr	%rd, [%a0]
+reg:	ZEXT#L(ldl,sh)		[4] => ldr	%rd, [%a1]
+reg:	SEXT#L(ldl,sh)		[4] => ldrsw	%rd, [%a1]
+:	STORE.L(addr4, reg)	[1] => str	%r2, [%a1]
+:	STORE2.L(addr4, reg)	[1] => str	%r2, [%a1]
+
+addr2:	addr
+addr2:	ADD(reg, pimm2)		== %r1, %c2
+addr2:	ADD(reg,SHL(reg,sh))	== %r1, %r21, lsl #%c22	// if sh == 1
+ldh:	LOAD.H(addr2)		== %a1
+reg:	ldh			[4] => ldrh	%rd, [%a0]
+reg:	ZEXT#H(ldh,sh)		[4] => ldrh	%rd, [%a1]
+reg:	SEXT#H(ldh,sh)		[4] => ldrsh	%rd, [%a1]
+:	STORE.H(addr2, reg)	[1] => strh	%r2, [%a1]
+
+addr1:	addr
+addr1:	ADD(reg, pimm1)		== %r1, %c2
+ldb:	LOAD.B(addr1)		== %a1
+reg:	ldb			[4] => ldrb	%rd, [%a0]
+reg:	ZEXT#B(ldb,sh)		[4] => ldrb	%rd, [%a1]
+reg:	SEXT#B(ldb,sh)		[4] => ldrsb	%rd, [%a1]
+:	STORE.B(addr1, reg)	[1] => strb	%r2, [%a1]
+
+
+reg:	LOAD2.L(reg)		[4] => ldp	%r1, %rd:lo, %rd:up
+reg:	LOAD2.Q(reg)		[4] => ldp	%r1, %rd:lo, %rd:up
+:	STORE2.L(reg, reg)	[1] => stp	%r1, %r2:lo, %r2:up
+:	STORE2.Q(reg, reg)	[1] => stp	%r1, %r2:lo, %r2:up
+
+:	STOREMEM(reg, LOADMEM(reg), const) [30]=> bl	memcpy(%r1, %r2.1, %c3)
+
+
+//// control flow
+reg:	CALL			[1] => bl	%l1 -> %rd
+reg:	CALLR(reg)		[1] => blr	%r1 -> %rd
+tcall:	CALL			[1] => b	%l1
+tcall:	CALLR(reg)		[1] => br	%r1
+
+:	RET(tcall)		[0] == %a1	// premature tail call optimization
+:	RET(reg)		[1] => ret	(-> %r1)
+:	RETVOID			[1] => ret

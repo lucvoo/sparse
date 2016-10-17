@@ -1,4 +1,5 @@
 archs	+= arm
+archs	+= arm64
 
 V	:= @
 Q	?= $(V:1=)
