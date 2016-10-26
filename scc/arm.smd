@@ -52,17 +52,29 @@ reg:	SUB(stdop, reg)		[1] => rsb	%rd, %r2, %c1
 reg:	NEG(stdop)		[1] => rsb	%rd, %r1, #0
 
 // multiply/divide/...
-reg:    MUL(reg, reg)		[4] => mul	%rd, %r1, %r2
+reg:    MUL.L(reg, reg)		[4] => mul	%rd, %r1, %r2
 reg:    DIVS(reg, reg)		[20] => sdiv	%rd, %r1, %r2
 reg:    DIVU(reg, reg)		[20] => udiv	%rd, %r1, %r2
 reg:    MODS(reg, reg)		[24] => sdiv	%rd, %r1, %r2; mls\t%rd, %rd, %r1, %r2
 reg:    MODU(reg, reg)		[24] => udiv	%rd, %r1, %r2; mls\t%rd, %rd, %r1, %r2
 
 // multiply-fused
-mul:    MUL(reg, reg)		== %r1, %r2
+mul:    MUL.L(reg, reg)		== %r1, %r2
 reg:    ADD(mul, reg)		[4] => mla	%rd, %a1, %r2
 reg:    ADD(reg, mul)		[4] => mla	%rd, %a2, %r1
 reg:    SUB(reg, mul)		[4] => mls	%rd, %a2, %r1
+
+// multiply-long
+u32:	ZEXT#L.Q(reg,sh)	== %r1
+s32:	SEXT#L.Q(reg,sh)	== %r1
+umul:	MUL.Q(u32, u32)		== %a1, %a2
+smul:	MUL.Q(s32, s32)		== %a1, %a2
+reg:	umul			[5] => umull	%rd:lo, %rd:hi, %a0
+reg:	smul			[5] => smull	%rd:lo, %rd:hi, %a0
+reg:	ADD.Q(reg, umul)	[5] => umlal	%rd:lo=%r1:lo, %rd:hi=%r1:hi, %a2
+reg:	ADD.Q(reg, smul)	[5] => smlal	%rd:lo=%r1:lo, %rd:hi=%r1:hi, %a2
+mmul:	ASR(smul, imm)		== %a1 (if %a2 == 32)
+reg:	AND.L(mmul, imm)	[5] => smmul	%rd, %a1 if (%c2 == 0xffffffff)
 
 // bitwise
 nstdop:	NOT(stdop)		== %a1
