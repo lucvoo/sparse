@@ -46,9 +46,14 @@ $(host-objs): %.o: %.c
 	@echo "  CC      $@"
 	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -Wp,-MD,.$@.d -c -o $@ $<
 
+%.sc: %.c
+	@echo "  CHECK   $@"
+	$(Q)../cgcc $(CPPFLAGS) $(CFLAGS) $(CHECKER_FLAGS) -c $<
+
 %.c: %.y
 	@echo "  GEN     $@"
 	$(Q)bison -o $@ $^
 
+selfcheck: $(objs-all:%.o=%.sc)
 
 -include $(objs-all:%.o=.%.o.d)
