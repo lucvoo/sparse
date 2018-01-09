@@ -1,0 +1,154 @@
+// SPDX-License-Identifier: MIT
+
+:	reg
+
+reg:	REG		== %r0
+reg2:	REG		== %r0
+reg:	ARG		== %r0
+reg2:	ARG		== %r0
+reg:	UNDEF
+reg:	VOID
+
+imm12:	CONST		// if range(-2048, 2047)
+imm12:	ZERO
+zero:	ZERO
+shamt:	CONST		// if range(0, 31)
+
+//reg:	imm12			[1] => lui	%rt, %c0
+reg:	ZERO			[1] => li	%rt, 0
+reg:	CONST			[4] => li	%rt, %c0
+reg:	LSYM			[2] => la	%rt, %l0
+reg:	GSYM			[2] => la	%rt, %l0
+
+reg:	SETVAL			[2] => lui	%rd, %hi(%l0); addi\t%rd, %rd, %lo(%l0)
+//// integer move
+reg:	COPY(reg)		[1] => mv	%rd, %r1
+
+//// integer immediate
+reg:	ADD(reg, imm12)		[1] => add	%rd, %r1, %c2
+reg:	AND(reg, imm12)		[1] => and	%rd, %r1, %c2
+reg:	OR(reg, imm12)		[1] => or	%rd, %r1, %c2
+reg:	XOR(reg, imm12)		[1] => xor	%rd, %r1, %c2
+
+// seqz %rd, %r1 <= sltiu %rd, %r1, 1
+reg:	SET_LT(reg, zero)	[1] => srl	%rd, %r1, 31
+reg:	SET_LT(reg, imm12)	[1] => slt	%rd, %r1, %c2
+reg:	SET_LE(reg, imm12)	[1] => slt	%rd, %r1, (%c2+1)
+reg:	SET_GT(reg, zero)	[1] => sgt	%rd, %r1, %rz
+reg:	SET_GT(reg, imm12)	[2] => slt	%rd, %r1, (%c2+1); xor	%rd, %rd, 1
+reg:	SET_GE(reg, imm12)	[2] => slt	%rd, %r1, %c2; xor	%rd, %rd, 1
+reg:	SET_B(reg, zero)	[1] => li	%rd,0	// FIXME optim
+reg:	SET_B(reg, imm12)	[1] => sltu	%rd, %r1, %c2
+reg:	SET_BE(reg, zero)	[1] => seqz	%rd, %r1
+reg:	SET_BE(reg, imm12)	[1] => sltu	%rd, %r1, (%c2+1)
+reg:	SET_A(reg, zero)	[1] => snez	%rd, %r1
+reg:	SET_A(reg, imm12)	[2] => sltu	%rd, %r1, (%c2+1); xor	%rd, %rd, 1
+reg:	SET_AE(reg, zero)	[1] => li	%rd,1	// FIXME optim
+reg:	SET_AE(reg, imm12)	[2] => sltu	%rd, %r1, %c2; xor	%rd, %rd, 1
+reg:	SET_EQ(reg, zero)	[1] => seqz	%rd, %r1
+reg:	SET_EQ(reg, imm12)	[2] => add	%rd, %r1, -%c2; seqz	%rd, %rd
+reg:	SET_NE(reg, zero)	[1] => snez	%rd, %r1
+reg:	SET_NE(reg, imm12)	[2] => add	%rd, %r1, -%c2; snez	%rd, %rd
+
+reg:	SHL(reg, shamt)		[1] => sll	%rd, %r1, %c2
+reg:	LSR(reg, shamt)		[1] => srl	%rd, %r1, %c2
+reg:	ASR(reg, shamt)		[1] => sra	%rd, %r1, %c2
+
+//// integer register-register
+reg:	ADD(reg, reg)		[1] => add	%rd, %r1, %r2
+reg:	SUB(reg, reg)		[1] => sub	%rd, %r1, %r2
+reg:	NEG(reg)		[1] => neg	%rd, %r1
+reg:	AND(reg, reg)		[1] => and	%rd, %r1, %r2
+reg:	OR(reg, reg)		[1] => or	%rd, %r1, %r2
+reg:	XOR(reg, reg)		[1] => xor	%rd, %r1, %r2
+reg:	NOT(reg)		[1] => not	%rd, %r1
+reg:	SET_LT(reg, reg)	[1] => slt	%rd, %r1, %r2
+reg:	SET_LE(reg, reg)	[2] => sgt	%rd, %r1, %r2; xor	%rd, %rd, 1
+reg:	SET_GT(reg, reg)	[1] => sgt	%rd, %r1, %r2
+reg:	SET_GE(reg, reg)	[2] => slt	%rd, %r1, %r2; xor	%rd, %rd, 1
+reg:	SET_B(reg, reg)		[1] => sltu	%rd, %r1, %r2
+reg:	SET_BE(reg, reg)	[2] => sgtu	%rd, %r1, %r2; xor	%rd, %rd, 1
+reg:	SET_A(reg, reg)		[1] => sgtu	%rd, %r1, %r2
+reg:	SET_AE(reg, reg)	[2] => sltu	%rd, %r1, %r2; xor	%rd, %rd, 1
+reg:	SET_EQ(reg, reg)	[2] => sub	%rd, %r1, %r2; seqz	%rd, %rd
+reg:	SET_NE(reg, reg)	[2] => sub	%rd, %r1, %r2; snez	%rd, %rd
+
+reg:	SHL(reg, reg)		[1] => sll	%rd, %r1, %r2
+reg:	LSR(reg, reg)		[1] => srl	%rd, %r1, %r2
+reg:	ASR(reg, reg)		[1] => sra	%rd, %r1, %r2
+
+reg:	TRUNC(reg, shamt)	[1] => and	%rd, %r1, (1 << %c2 - 1) // if ...
+reg:	ZEXT(reg, shamt)	[2] => sll	%rd, %r1, (32-%c2); sra	%rd, %rd,%c2
+reg:	SEXT(reg, shamt)	[2] => sll	%rd, %r1, (32-%c2); srl	%rd, %rd,%c2
+
+//// control
+:	BR			[1] => j	%b
+:	COMPUTEDGOTO(reg)	[1] => jalr	x0, %r1, 0
+
+:	CBR(reg)		[1] => bnez	%r1, %b
+:	CBR(SET_EQ(reg, reg))	[1] => beq	%r1, %r2, %b
+:	CBR(SET_NE(reg, reg))	[1] => bne	%r1, %r2, %b
+:	CBR(SET_LT(reg, reg))	[1] => blt	%r1, %r2, %b
+:	CBR(SET_B(reg, reg))	[1] => bltu	%r1, %r2, %b
+:	CBR(SET_GE(reg, reg))	[1] => bge	%r1, %r2, %b
+:	CBR(SET_AE(reg, reg))	[1] => bgeu	%r1, %r2, %b
+:	CBR(SET_GT(reg, reg))	[1] => bgt	%r2, %r1, %b
+:	CBR(SET_A(reg, reg))	[1] => bgtu	%r2, %r1, %b
+:	CBR(SET_LE(reg, reg))	[1] => ble	%r2, %r1, %b
+:	CBR(SET_BE(reg, reg))	[1] => bleu	%r2, %r1, %b
+
+// FIXME
+:	CALL			[1] => call	%l1
+reg:	CALL			[1] => call	%l1 -> %rd
+reg2:	CALL			[1] => call	%l1 -> %rd
+reg:	CALLR(reg)		[1] => jalr	x1, %r1, 0 -> %rd
+
+:	RET(reg)		[1] => ret	%r1
+:	RET(reg2)		[1] => ret	%r1
+:	RETVOID			[1] => ret
+
+//// load & store
+addr:	GSYM			    == %l0
+addr:	LSYM			    == %l0(sp)	// FIXME
+addr:	ADD(LSYM, imm12)	    == %c2(%l1)
+addr:	ADD(reg, imm12)		    == %c2(%r1)
+addr:	reg			    == 0(%r0)
+
+reg:	LOAD.L(addr)		[2] => lw	%rd, %a1
+ldh:	LOAD.H(addr)		== %a1
+reg:	ldh			[3] => lh	%rd, %a1
+reg:	SEXT#H(ldh,shamt)	[3] => lh	%rd, %a1
+reg:	ZEXT#H(ldh,shamt)	[3] => lhu	%rd, %a1
+ldb:	LOAD.B(addr)		== %a1
+reg:	ldb			[3] => lb	%rd, %a1
+reg:	SEXT#B(ldb,shamt)	[3] => lb	%rd, %a1
+reg:	ZEXT#B(ldb,shamt)	[3] => lbu	%rd, %a1
+
+:	STORE.L(addr, reg)	[1] => sw	%r2, %a1
+:	STORE.H(addr, reg)	[1] => sh	%r2, %a1
+:	STORE.B(addr, reg)	[1] => sb	%r2, %a1
+
+:	STOREMEM(reg, zero, imm12)	[30]=> call	memset(%r1, 0, size(%r1))
+:	STOREMEM(LSYM,zero, imm12)	[30]=> call	memset(%l1, 0, size(%l1))
+
+reg2:	LOAD2.Q(reg)		[2] => lw\t%rd:lo, 0(%r1); lw\t%rd:hi, 4(%r1)
+:	STORE2.Q(reg, reg2)	[2] => sw\t%r2:lo, 0(%r1); sw\t%r2:hi, 4(%r1)
+
+:	STOREMEM(reg, LOADMEM(reg), imm12) [30]=> call	memcpy(%r1, %r21, %c3)
+
+
+//// multiply/divide/...
+reg:    MUL.L(reg, reg)		[5] => mul	%rd, %r1, %r2
+reg:    DIVS(reg, reg)		[33] => div	%rd, %r1, %r2
+reg:    DIVU(reg, reg)		[33] => divu	%rd, %r1, %r2
+reg:    MODS(reg, reg)		[33] => rem	%rd, %r1, %r2
+reg:    MODU(reg, reg)		[33] => remu	%rd, %r1, %r2
+
+// multiply-long ...
+u32:	ZEXT#L.Q(reg,shamt)	== %r1
+s32:	SEXT#L.Q(reg,shamt)	== %r1
+reg2:	MUL.Q(u32, u32)		[10] => mulh	%rd:hi, %a1, %a2; mul	%rd:lo, %a1, %a2
+reg2:	MUL.Q(s32, s32)		[10] => mulhu	%rd:hi, %a1, %a2; mul	%rd:lo, %a1, %a2
+
+// select
+reg:	SEL(reg, reg, reg)	[3] =>		TODO select
