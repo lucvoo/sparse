@@ -408,9 +408,90 @@ reg:	LOAD2.Q(reg)		[4] => ldp	%r1, %rd:lo, %rd:up
 //// control flow
 reg:	CALL			[1] => bl	%l1 -> %rd
 reg:	CALLR(reg)		[1] => blr	%r1 -> %rd
+freg:	CALL			[1] => bl	%l1 -> %rd
+freg:	CALLR(reg)		[1] => blr	%r1 -> %rd
 tcall:	CALL			[1] => b	%l1
 tcall:	CALLR(reg)		[1] => br	%r1
 
 :	RET(tcall)		[0] == %a1	// premature tail call optimization
 :	RET(reg)		[1] => ret	(-> %r1)
 :	RETVOID			[1] => ret
+
+////////////////////////////////////////////////////////////////////////
+//// floating-point
+
+freg:	ARG
+freg:	REG
+
+:	freg
+:	RET(freg)		[1] => ret	%r1
+
+freg:	FLOAD(addr)		[2] => ldr	%rd, %a1
+freg:	FLOAD(addr)		[2] => ldr	%rd, %a1
+:	FSTORE(addr, freg)	[2] => str	%r2, %a1
+:	FSTORE(addr, freg)	[2] => str	%r2, %a1
+
+freg:	SETFVAL			[4] => fmv	%rd, %f	// FIXME
+freg:	COPY(freg)		[1] => fmv	%rd, %r1
+
+size:	CONST	// FIXME
+freg:	UCVTF(reg, size)	[3] => ucvtf	%rd, %r1
+freg:	SCVTF(reg, size)	[3] => scvtf	%rd, %r1
+freg:	FCVTF(freg, size)	[3] => fcvt	%rd, %r1
+reg:	FCVTU(freg, size)	[3] => fcvtzu	%rd, %r1
+reg:	FCVTS(freg, size)	[3] => fcvtzs	%rd, %r1
+// FIXME
+
+freg:	FNEG(freg)		[3] => fneg	%rd, %r1
+//freg:	FABS(freg)		[3] => fabs	%rd, %r1
+freg:	FADD(freg, freg)	[5] => fadd	%rd, %r1, %r2
+freg:	FSUB(freg, freg)	[5] => fsub	%rd, %r1, %r2
+freg:	FMUL(freg, freg)	[5] => fmul	%rd, %r1, %r2
+freg:	FDIV(freg, freg)	[32] => fdiv	%rd, %r1, %r2
+//freg:	FMIN(freg, freg)	[5] => fmin	%rd, %r1, %r2
+//freg:	FMAX(freg, freg)	[5] => fmax	%rd, %r1, %r2
+//freg:	FSQRT(freg)		[32] => fsqrt	%rd, %r1
+
+freg:	FNEG(FMUL(freg, freg))	[5] => fnmul	%rd, %r11, %r12
+freg:	FMUL(FNEG(freg), freg)	[5] => fnmul	%rd, %r11, %r2
+freg:	FMUL(freg, FNEG(freg))	[5] => fnmul	%rd, %r1, %r21
+
+freg:	FADD(FMUL(freg, freg), freg)	[4] => fmadd	%rd, %r11, %r12, %r2
+freg:	FADD(freg, FMUL(freg, freg))	[4] => fmadd	%rd, %r21, %r22, %r1
+freg:	FSUB(freg, FMUL(freg, freg))	[4] => fmsub	%rd, %r21, %r22, %r1
+freg:	FSUB(FMUL(freg, freg), freg)	[4] => fnmsub	%rd, %r11, %r12, %r2
+freg:	FADD(FMUL(FNEG(freg),freg),freg)[4] => fnmsub	%rd, %r111, %r12, %r2
+freg:	FSUB(FMUL(FNEG(freg),freg),freg)[4] => fnmadd	%rd, %r111, %r12, %r2
+freg:	FSUB(FNEG(freg),FMUL(freg,freg))[4] => fnmadd	%rd, %r21, %r22, %r11
+freg:	FNEG(FADD(FMUL(freg,freg),freg))[4] => fnmadd	%rd, %r111, %r112, %r12
+freg:	FNEG(FADD(freg,FMUL(freg,freg)))[4] => fnmadd	%rd, %r121, %r122, %r11
+
+tstoeq:	FCMP_OEQ(freg, freg)	[3] => fcmp	%r1, %r2
+tstune:	FCMP_UNE(freg, freg)	[3] => fcmp	%r1, %r2
+tstolt:	FCMP_OLT(freg, freg)	[3] => fcmp	%r1, %r2
+tstole:	FCMP_OLE(freg, freg)	[3] => fcmp	%r1, %r2
+tstogt:	FCMP_OGT(freg, freg)	[3] => fcmp	%r1, %r2
+tstoge:	FCMP_OGE(freg, freg)	[3] => fcmp	%r1, %r2
+tstult:	FCMP_ULT(freg, freg)	[3] => fcmp	%r1, %r2
+tstule:	FCMP_ULE(freg, freg)	[3] => fcmp	%r1, %r2
+tstugt:	FCMP_UGT(freg, freg)	[3] => fcmp	%r1, %r2
+tstuge:	FCMP_UGE(freg, freg)	[3] => fcmp	%r1, %r2
+
+condt:	tstoeq == eq
+condt:	tstune == ne
+condt:	tstolt == mi
+condt:	tstole == ls
+condt:	tstogt == gt
+condt:	tstoge == ge
+
+condt:	tstult == lt
+condt:	tstule == le
+condt:	tstugt == hi
+condt:	tstuge == pl
+
+condf:	tstoeq == ne
+condf:	tstune == eq
+condf:	tstolt == pl
+condf:	tstole == hi
+condf:	tstogt == le
+condf:	tstoge == lt
