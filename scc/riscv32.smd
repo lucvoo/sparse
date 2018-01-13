@@ -152,3 +152,68 @@ reg2:	MUL.Q(s32, s32)		[10] => mulhu	%rd:hi, %a1, %a2; mul	%rd:lo, %a1, %a2
 
 // select
 reg:	SEL(reg, reg, reg)	[3] =>		TODO select
+
+////////////////////////////////////////////////////////////////////////
+//// floating-point
+
+:	freg
+
+freg:	ARG
+freg:	REG
+
+freg:	CALL			[1] => call	%l1 -> %rd
+:	RET(freg)		[1] => ret	%r1
+
+freg:	SETFVAL			[5]		// FIXME
+
+freg:	FLOAD.S(addr)		[2] => flw	%rd, %a1
+freg:	FLOAD.D(addr)		[2] => fld	%rd, %a1
+:	FSTORE.S(addr, freg)	[2] => fsw	%r2, %a1
+:	FSTORE.D(addr, freg)	[2] => fsd	%r2, %a1
+
+freg:	COPY(freg)		[1] => fmv	%rd, %r1
+size:	CONST	// FIXME
+
+// need cast rework
+freg:	SCVTF.S(reg,size)	[3] => fcvt.s.w		%rd, %r1
+freg:	SCVTF.D(reg,size)	[3] => fcvt.d.w		%rd, %r1
+
+reg:	FCVTS.L(freg, size)	[3] => fcvt.w.s		%rd,%r1,rtz
+reg:	FCVTU.L(freg, size)	[3] => fcvt.wu.s	%rd,%r1,rtz
+reg:	FCVTS.L(freg, size)	[3] => fcvt.w.d		%rd,%r1,rtz
+reg:	FCVTU.L(freg, size)	[3] => fcvt.wu.d	%rd,%r1,rtz
+
+reg:	TRUNC.L(freg, size)	[3] => fcvt.w.d		%rd,%r1,rtz
+reg:	TRUNC.L(freg, size)	[3] => fcvt.wu.d	%rd,%r1,rtz
+// need cast rework
+
+
+freg:	FNEG(freg)		[4] => fneg	%rd, %r1
+//freg:	FABS(freg)		[4] => fabs	%rd, %r1
+freg:	FADD(freg, freg)	[4] => fadd	%rd, %r1, %r2
+freg:	FSUB(freg, freg)	[4] => fsub	%rd, %r1, %r2
+freg:	FMUL(freg, freg)	[4] => fmul	%rd, %r1, %r2
+freg:	FDIV(freg, freg)	[4] => fdiv	%rd, %r1, %r2
+//freg:	FMIN(freg, freg)	[4] => fmin	%rd, %r1, %r2
+//freg:	FMAX(freg, freg)	[4] => fmax	%rd, %r1, %r2
+//freg:	FSQRT(freg)		[36] => fsqrt	%rd, %r1
+freg:	FADD(FMUL(freg, freg), freg)	[4] => fmadd	%rd, %r11, %r12, %r2
+freg:	FADD(freg, FMUL(freg, freg))	[4] => fmadd	%rd, %r21, %r22, %r1
+freg:	FSUB(FMUL(freg, freg), freg)	[4] => fmsub	%rd, %r11, %r12, %r2
+freg:	FSUB(freg, FMUL(freg, freg))	[4] => fnmsub	%rd, %r21, %r22, %r1
+freg:	FADD(FMUL(FNEG(freg),freg),freg)[4] => fnmsub	%rd, %r111, %r12, %r2
+freg:	FSUB(FMUL(FNEG(freg),freg),freg)[4] => fnmadd	%rd, %r111, %r12, %r2
+freg:	FSUB(FNEG(freg),FMUL(freg,freg))[4] => fnmadd	%rd, %r21, %r22, %r11
+freg:	FNEG(FADD(FMUL(freg,freg),freg))[4] => fnmadd	%rd, %r111, %r112, %r12
+freg:	FNEG(FADD(freg,FMUL(freg,freg)))[4] => fnmadd	%rd, %r121, %r122, %r11
+
+reg:	FCMP_OEQ(freg, freg)	[3] => feq.d	%rd, %r1, %r2
+reg:	FCMP_UNE(freg, freg)	[4] => feq.d	%rd, %r1, %r2; xor	%rd, %rd, 1
+reg:	FCMP_OLT(freg, freg)	[3] => flt.d	%rd, %r1, %r2
+reg:	FCMP_OLE(freg, freg)	[3] => fle.d	%rd, %r1, %r2
+reg:	FCMP_OGT(freg, freg)	[3] => fgt.d	%rd, %r1, %r2
+reg:	FCMP_OGE(freg, freg)	[3] => fge.d	%rd, %r1, %r2
+reg:	FCMP_ULT(freg, freg)	[4] => fge.d	%rd, %r1, %r2; xor	%rd, %r1, 1
+reg:	FCMP_ULE(freg, freg)	[4] => fgt.d	%rd, %r1, %r2; xor	%rd, %r1, 1
+reg:	FCMP_UGT(freg, freg)	[4] => fle.d	%rd, %r1, %r2; xor	%rd, %r1, 1
+reg:	FCMP_UGE(freg, freg)	[4] => flt.d	%rd, %r1, %r2; xor	%rd, %r1, 1
