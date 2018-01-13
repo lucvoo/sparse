@@ -229,6 +229,19 @@ static void translate_memop(struct instruction *insn)
 		break;
 	}
 
+	if (is_float_type(insn->type)) {
+		switch (op) {
+		case OP_LOAD:
+			op = INSN_FLOAD;
+			break;
+		case OP_STORE:
+			op = INSN_FSTORE;
+			break;
+		default:
+			break;
+		}
+	}
+
 	s = alloc_state(op, insn->target, insn);
 	if (insn->offset) {
 		struct cg_state* addr = alloc_state(INSN_ADD, insn->src, insn);
@@ -333,10 +346,12 @@ static void translate_insn(struct instruction *insn)
 
 	case OP_BINARY ... OP_BINARY_END:
 	case OP_BINCMP ... OP_BINCMP_END:
+	case OP_FPCMP ... OP_FPCMP_END:
 		translate_binop(insn);
 		break;
 	case OP_NOT:
 	case OP_NEG:
+	case OP_FNEG:
 	case OP_COPY:
 		translate_unop(insn);
 		break;
@@ -350,6 +365,11 @@ static void translate_insn(struct instruction *insn)
 	case OP_TRUNC:
 	case OP_ZEXT:
 	case OP_SEXT:
+	case OP_FCVTU:
+	case OP_FCVTS:
+	case OP_UCVTF:
+	case OP_SCVTF:
+	case OP_FCVTF:
 		translate_cast(insn);
 		break;
 

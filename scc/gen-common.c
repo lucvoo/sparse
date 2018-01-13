@@ -196,6 +196,10 @@ static void emit_tmpl(struct state *s, int rule)
 			}
 			break;
 
+		case 'f':	// floating-point constant
+			printf("%Lg", s->insn->fvalue);
+			break;
+
 		case 'b':	// branch
 			printf(".L%d", s->insn->bb_true->nr);
 			if (s->insn->bb_false)
