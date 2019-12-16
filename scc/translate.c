@@ -282,6 +282,11 @@ static void translate_cast(struct instruction *insn)
 		break;
 	case OP_ZEXT:
 	case OP_SEXT:
+	case OP_UCVTF:
+	case OP_SCVTF:
+	case OP_FCVTF:
+	case OP_FCVTS:
+	case OP_FCVTU:
 		op = insn->opcode;
 		siz = old_size;
 		break;
