@@ -29,6 +29,7 @@ static struct ptree *tree(const char *, int, int, int, struct ptree *, struct pt
 %token  <str>		STR
 %token  <str>		TMPL
 %token  <val>		INT
+%token  <val>		FIX10
 %token			EMIT "=>"
 %token			EXEC "=="
 %token			SIZEB		/* '.B' */
@@ -97,7 +98,8 @@ count	: 			{ $$ = 0; }
 	;
 
 cost	: 			{ $$ = 0; }
-	| '[' INT ']'		{ $$ = $2; }
+	| '[' INT ']'		{ $$ = $2 * 10; }
+	| '[' FIX10 ']'		{ $$ = $2; }
 	;
 %%
 #include <stdarg.h>
@@ -189,6 +191,10 @@ static int yylex(void)
 			return c;
 
 		case '.':
+			if (isdigit(*buffp)) {
+				yylval.val = *buffp++ - '0';
+				return FIX10;
+			}
 			if (isalnum(buffp[1]))
 				return c;
 			switch (*buffp++) {
@@ -233,6 +239,11 @@ static int yylex(void)
 			} while (isdigit(c));
 			yylval.val = n;
 			buffp--;
+			if (c == '.' && isdigit(buffp[1])) {
+				yylval.val *= 10 + buffp[1] - '0';
+				buffp += 2;
+				return FIX10;
+			}
 			return INT;
 
 		case 'A' ... 'Z':
