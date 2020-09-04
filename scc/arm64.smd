@@ -111,6 +111,23 @@ reg:	ADD(reg, mul)	[5] => madd	%rd, %a2, %r1
 reg:	SUB(reg, mul)	[5] => msub	%rd, %a2, %r1
 reg:	NEG(mul)	[5] => mneg	%rd, %a1
 
+smull:	MUL(sxl,sxl)	== %a1, %a2
+reg:	smull			[3] => smull	%rd, %a0
+reg:	ADD(smull, reg)		[3] => smaddl	%rd, %a1, %r2
+reg:	ADD(reg, smull)		[3] => smaddl	%rd, %a2, %r1
+reg:	SUB(reg, smull)		[3] => smsubl	%rd, %a2, %r1
+reg:	NEG(smull)		[3] => smnegl	%rd, %a1
+
+umull:	MUL(zxl,zxl)	== %a1, %a2
+reg:	umull			[3] => umull	%rd, %a0
+reg:	ADD(umull, reg)		[3] => umaddl	%rd, %a1, %r2
+reg:	ADD(reg, umull)		[3] => umaddl	%rd, %a2, %r1
+reg:	SUB(reg, umull)		[3] => umsubl	%rd, %a2, %r1
+reg:	NEG(umull)		[3] => umnegl	%rd, %a1
+
+reg:	TRUNC(ASR(MUL(sxq,sxq),sh),sh) [6] => smulh\t%rd, %r1111, %r1121
+reg:	TRUNC(LSR(MUL(zxq,zxq),sh),sh) [6] => umulh\t%rd, %r1111, %r1121
+
 // cost 4-20/36 for 32/64 bit
 reg:    DIVS(reg, reg)	[36] => sdiv	%rd, %r1, %r2
 reg:    DIVU(reg, reg)	[36] => udiv	%rd, %r1, %r2
