@@ -122,8 +122,17 @@ static void translate_unop(struct instruction *insn)
 
 static void translate_binop(struct instruction *insn)
 {
-	struct cg_state *s = alloc_state(insn->opcode, insn->target, insn);
+	struct cg_state *s;
 
+	if (insn->opcode == OP_ADD && insn->src2->type == PSEUDO_VAL) {
+		long long val = sign_extend(insn->src2->value, insn->size);
+		if (val < 0) {
+			insn->src2->value = -val;
+			insn->opcode = OP_SUB;
+		}
+	}
+
+	s = alloc_state(insn->opcode, insn->target, insn);
 	s->kids[0] = get_src_state(insn->bb, insn->src1);
 	s->kids[1] = get_src_state(insn->bb, insn->src2);
 

@@ -333,19 +333,19 @@ tbeq:	SET_EQ(AND(reg, bit), zero) == %r1
 //// select
 reg:	condt				[1] => cset	%rd, %a0
 
-reg:	SEL(condf, reg0, reg0)		[1] => csel	%rd, %r2, %r3, %a1
+reg:	SEL(condf, reg0, reg0)		[1] => csel	%rd, %a2, %a3, %a1
 
-reg:	SEL(condt, reg0, ADD(reg, one))	[1] => csinc	%rd, %r2, %r31, %a1
+reg:	SEL(condt, reg0, ADD(reg, one))	[1] => csinc	%rd, %a2, %r31, %a1
 reg:	SEL(condf, ADD(reg, one), reg0)	[1] => csinc	%rd, %r21, %r3, %a1
-reg:	SEL(condt, reg0, one)		[1] => csinc	%rd, %r21, %rz, %a1
-reg:	SEL(condf, one, reg0)		[1] => csinc	%rd, %r3, %rz, %a1
+reg:	SEL(condt, reg0, one)		[1] => csinc	%rd, %a2, %rz, %a1
+reg:	SEL(condf, one, reg0)		[1] => csinc	%rd, %a3, %rz, %a1
 
-reg:	SEL(condt, reg0, NOT(reg))	[1] => csinv	%rd, %r2, %r31, %a1
-reg:	SEL(condf, NOT(reg), reg0)	[1] => csinv	%rd, %r21, %r3, %a1
-reg:	SEL(condt, reg0, ones)		[1] => csinv	%rd, %r2, %rz, %a1
-reg:	SEL(condf, ones, reg0)		[1] => csinv	%rd, %r3, %rz, %a1
+reg:	SEL(condt, reg0, NOT(reg))	[1] => csinv	%rd, %a2, %r31, %a1
+reg:	SEL(condf, NOT(reg), reg0)	[1] => csinv	%rd, %r21, %a3, %a1
+reg:	SEL(condt, reg0, ones)		[1] => csinv	%rd, %a2, %rz, %a1
+reg:	SEL(condf, ones, reg0)		[1] => csinv	%rd, %a3, %rz, %a1
 
-reg:	SEL(condt, reg0, NEG(reg))	[1] => csneg	%rd, %r2, %r31, %a1
+reg:	SEL(condt, reg0, NEG(reg))	[1] => csneg	%rd, %a2, %r31, %a1
 reg:	SEL(condf, NEG(reg), reg0)	[1] => csneg	%rd, %r21, %r3, %a1
 
 //// load and store
