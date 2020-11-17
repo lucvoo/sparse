@@ -59,6 +59,56 @@ static int check_phi_node(struct instruction *insn)
 	return err;
 }
 
+static int check_phi_source(struct instruction *insn)
+{
+	struct instruction *node;
+
+	if (!has_users(insn->target)) {
+		warning(insn->pos, "orphaned phisrc:");
+		info(insn->pos, "phi-src:  %s: %s", show_label(insn->bb),
+				show_instruction(insn));
+		return 0;
+	}
+
+	node = insn->phi_node;
+	if (!node) {
+		sparse_error(insn->pos, "missing phisrc's phi-node in:\n\t%s",
+			show_instruction(insn));
+		return 1;
+	}
+	if (node->opcode != OP_PHI) {
+		sparse_error(insn->pos, "wrong phisrc's phi-node in:\n\t%s",
+			show_instruction(insn));
+		info(insn->pos, "'phi-node': %s", show_instruction(node));
+		return 1;
+	}
+	if (!pseudo_in_list(node->phi_list, insn->target)) {
+		sparse_error(insn->pos, "phisrc not in phi-node's list:");
+		info(insn->pos, "phi-src:  %s: %s", show_label(insn->bb),
+				show_instruction(insn));
+		info(insn->pos, "phi-node: %s: %s", show_label(node->bb),
+				show_instruction(node));
+		return 1;
+	}
+	if (!lookup_bb(insn->bb->children, node->bb)) {
+		sparse_error(insn->pos, "wrong phi-node's BB:");
+		info(insn->pos, "phi-src:  %s: %s", show_label(insn->bb),
+				show_instruction(insn));
+		info(insn->pos, "phi-node: %s: %s", show_label(node->bb),
+				show_instruction(node));
+		return 1;
+	}
+	if (!lookup_bb(node->bb->parents, insn->bb)) {
+		sparse_error(insn->pos, "wrong phi-src's BB:");
+		info(insn->pos, "phi-src:  %s: %s", show_label(insn->bb),
+				show_instruction(insn));
+		info(insn->pos, "phi-node: %s: %s", show_label(node->bb),
+				show_instruction(node));
+		return 1;
+	}
+	return 0;
+}
+
 static int check_user(struct instruction *insn, pseudo_t pseudo)
 {
 	struct instruction *def;
@@ -135,7 +185,6 @@ static int validate_insn(struct entrypoint *ep, struct instruction *insn)
 	case OP_UNOP ... OP_UNOP_END:
 	case OP_SLICE:
 	case OP_SYMADDR:
-	case OP_PHISOURCE:
 		err += check_user(insn, insn->src1);
 		break;
 
@@ -149,6 +198,10 @@ static int validate_insn(struct entrypoint *ep, struct instruction *insn)
 
 	case OP_PHI:
 		err += check_phi_node(insn);
+		break;
+	case OP_PHISOURCE:
+		err += check_user(insn, insn->src1);
+		err += check_phi_source(insn);
 		break;
 
 	case OP_CALL:
