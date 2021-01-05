@@ -258,3 +258,25 @@ int ir_validate(struct entrypoint *ep)
 		abort();
 	return err;
 }
+
+int ir_validate_phi(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+	int err = 0;
+
+	FOR_EACH_PTR(ep->bbs, bb) {
+		struct instruction *insn;
+		int ok = 1;
+		FOR_EACH_PTR(bb->insns, insn) {
+			if (!insn->bb)
+				continue;
+			if (insn->opcode == OP_PHI) {
+				if (!ok)
+					asm("int $3");
+			} else {
+				ok = 0;
+			}
+		} END_FOR_EACH_PTR(insn);
+	} END_FOR_EACH_PTR(bb);
+	return err;
+}

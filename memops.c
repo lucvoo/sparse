@@ -16,6 +16,7 @@
 #include "linearize.h"
 #include "simplify.h"
 #include "flow.h"
+#include "ir.h"
 
 
 static pseudo_t convert_to_phinode(struct basic_block *bb, struct instruction_list *dominators, struct symbol *type, struct ident *ident)
@@ -297,4 +298,6 @@ void simplify_memops(struct entrypoint *ep)
 			continue;
 		kill_dead_stores(ep, pseudo, local_pseudo(pseudo));
 	} END_FOR_EACH_PTR(pseudo);
+
+	ir_validate_phi(ep);
 }
