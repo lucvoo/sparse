@@ -11,7 +11,6 @@ loop:
 /*
  * check-name: bad-memops1
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: %r3 <- %r3

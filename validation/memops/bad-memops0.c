@@ -13,7 +13,6 @@ void foo(int p)
 /*
  * check-name: bad-memops0
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: %r3 <- %r3

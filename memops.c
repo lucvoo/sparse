@@ -84,9 +84,11 @@ static int find_dominating_parents(struct instruction *insn, struct basic_block 
 		} END_FOR_EACH_PTR_REVERSE(one);
 
 		if (parent->generation == bb->generation)
-			continue;
+			return 0;
 		parent->generation = bb->generation;
 
+		if (bb_list_size(bb->parents) != 1)
+			return 0;
 		if (!find_dominating_parents(insn, parent, dominators, local))
 			return 0;
 		continue;

@@ -15,5 +15,4 @@ l:
  * check-name: internal infinite loop (5)
  * check-command: sparse $file
  * check-timeout:
- * check-known-to-fail
  */
