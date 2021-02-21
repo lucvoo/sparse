@@ -181,6 +181,8 @@ static void translate_memop(struct instruction *insn)
 
 	switch (insn->opcode) {
 	case OP_LOAD:
+		if (is_bool_type(insn->type))
+			insn->size = size = 8;
 		op = INSN_LOADMEM;
 		switch (unit) {
 		case 1:
@@ -210,6 +212,8 @@ static void translate_memop(struct instruction *insn)
 		break;
 	case OP_STORE:
 		op = INSN_STOREMEM;
+		if (insn->target->type == PSEUDO_ARG)
+			unit = size / 8;
 		switch (unit) {
 		case 1:
 			switch (size) {
