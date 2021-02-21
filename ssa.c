@@ -30,6 +30,8 @@ static inline bool is_promotable(struct symbol *type)
 	case SYM_RESTRICT:	// OK, always integer types
 		return 1;
 	case SYM_STRUCT:
+		if (type->packed)
+			return 0;
 		// we allow a single scalar field
 		// but a run of bitfields count for 1
 		// (and packed bifields are excluded).
