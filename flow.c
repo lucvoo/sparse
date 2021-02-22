@@ -410,12 +410,14 @@ static inline int distinct_symbols(pseudo_t a, pseudo_t b)
 	return a->sym != b->sym;
 }
 
-/*
- * Return 1 if "dom" dominates the access to "pseudo"
- * in "insn".
- *
- * Return 0 if it doesn't, and -1 if you don't know.
- */
+///
+// Check if a memory operation domnates another one.
+// @dom: the potentally dominating instruction
+// @insn: the other instruction
+// @return:
+//	* 1 if @dom dominates the access in @insn
+//	* 0 if it doesn't
+//	* -1 otherwise (unknown or partial domination).
 int dominates(struct instruction *insn, struct instruction *dom, int local)
 {
 	switch (dom->opcode) {
