@@ -407,7 +407,7 @@ static inline int distinct_symbols(pseudo_t a, pseudo_t b)
 		return 0;
 	if (b->type != PSEUDO_SYM)
 		return 0;
-	return a->sym != b->sym;
+	return a != b;
 }
 
 ///
