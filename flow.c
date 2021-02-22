@@ -382,25 +382,6 @@ void convert_instruction_target(struct instruction *insn, pseudo_t src)
 	target->users = NULL;
 }
 
-static int overlapping_memop(struct instruction *a, struct instruction *b)
-{
-	unsigned int a_start = bytes_to_bits(a->offset);
-	unsigned int b_start = bytes_to_bits(b->offset);
-	unsigned int a_size = a->size;
-	unsigned int b_size = b->size;
-
-	if (a_size + a_start <= b_start)
-		return 0;
-	if (b_size + b_start <= a_start)
-		return 0;
-	return 1;
-}
-
-static inline int same_memop(struct instruction *a, struct instruction *b)
-{
-	return	a->offset == b->offset && a->size == b->size;
-}
-
 static inline int distinct_symbols(pseudo_t a, pseudo_t b)
 {
 	if (a->type != PSEUDO_SYM)
@@ -418,10 +399,14 @@ static inline int distinct_symbols(pseudo_t a, pseudo_t b)
 //	* 1 if @dom dominates the access in @insn
 //	* 0 if it doesn't
 //	* -1 if unknown
-//	* -2 if the dominance is partial, more exactly, if the memory
+//	* -2 if partial overlap
+//	* -3 if @dom covers @insn
+//	* -4 if @insn covers @dom
 //	  regions of the 2 operations overlap but are not the same.
 int dominates(struct instruction *insn, struct instruction *dom, int local)
 {
+	unsigned int d_start, i_start, d_end, i_end;
+
 	switch (dom->opcode) {
 	case OP_CALL: case OP_ENTRY:
 		return local ? 0 : -1;
@@ -446,12 +431,20 @@ int dominates(struct instruction *insn, struct instruction *dom, int local)
 		/* We could try to do some alias analysis here */
 		return -1;
 	}
-	if (!same_memop(insn, dom)) {
-		if (!overlapping_memop(insn, dom))
-			return 0;
-		return -2;
-	}
-	return 1;
+	if (dom->offset == insn->offset && dom->size == insn->size)
+		return 1;		// same memop
+	d_start = bytes_to_bits(dom->offset);
+	i_start = bytes_to_bits(insn->offset);
+	d_end = d_start + dom->size;
+	i_end = i_start + insn->size;
+
+	if (d_end <= i_start || d_start >= i_end)
+		return 0;		// totally disjoint
+	if (d_start <= i_start && i_end <= d_end)
+		return -3;		// d covers i
+	if (i_start <= d_start && d_end <= i_end)
+		return -4;		// i covers d
+	return -2;			// partial overlap
 }
 
 /* Kill a pseudo that is dead on exit from the bb */
