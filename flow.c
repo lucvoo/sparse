@@ -417,7 +417,9 @@ static inline int distinct_symbols(pseudo_t a, pseudo_t b)
 // @return:
 //	* 1 if @dom dominates the access in @insn
 //	* 0 if it doesn't
-//	* -1 otherwise (unknown or partial domination).
+//	* -1 if unknown
+//	* -2 if the dominance is partial, more exactly, if the memory
+//	  regions of the 2 operations overlap but are not the same.
 int dominates(struct instruction *insn, struct instruction *dom, int local)
 {
 	switch (dom->opcode) {
@@ -447,7 +449,7 @@ int dominates(struct instruction *insn, struct instruction *dom, int local)
 	if (!same_memop(insn, dom)) {
 		if (!overlapping_memop(insn, dom))
 			return 0;
-		return -1;
+		return -2;
 	}
 	return 1;
 }
