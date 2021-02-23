@@ -2726,6 +2726,15 @@ static int simplify_setval(struct instruction *insn)
 	return 0;
 }
 
+static int simplify_slice(struct instruction *insn)
+{
+	pseudo_t src = insn->src;
+
+	if (is_zero(src))
+		return replace_with_pseudo(insn, src);
+	return 0;
+}
+
 int simplify_instruction(struct instruction *insn)
 {
 	unsigned flags;
@@ -2790,7 +2799,7 @@ int simplify_instruction(struct instruction *insn)
 	case OP_PTRTU:
 		return replace_with_pseudo(insn, insn->src);
 	case OP_SLICE:
-		break;
+		return simplify_slice(insn);
 	case OP_SETVAL:
 		return simplify_setval(insn);
 	case OP_LABEL:
