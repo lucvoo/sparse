@@ -6,6 +6,7 @@
 int simplify_instruction(struct instruction *insn);
 void kill_dead_instructions(struct entrypoint *ep);
 
+int replace_pseudo(struct instruction *insn, pseudo_t *pp, pseudo_t new);
 int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo);
 
 #endif

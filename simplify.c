@@ -467,7 +467,7 @@ static bool is_negate_of(pseudo_t p, pseudo_t ref)
 // @pp: the address of the instruction's operand
 // @new: the new value for the operand
 // @return: REPEAT_CSE.
-static inline int replace_pseudo(struct instruction *insn, pseudo_t *pp, pseudo_t new)
+int replace_pseudo(struct instruction *insn, pseudo_t *pp, pseudo_t new)
 {
 	pseudo_t old = *pp;
 	use_pseudo(insn, new, pp);
