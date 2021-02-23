@@ -178,6 +178,13 @@ static void simplify_loads(struct basic_block *bb)
 				if (dominance) {
 					/* possible partial dominance? */
 					if (dominance < 0)  {
+if (dominance == -3) {
+replace_pseudo(insn, &insn->src, dom->target);
+insn->opcode = OP_SLICE;
+insn->from = bytes_to_bits(insn->offset - dom->offset);
+insn->orig_type = dom->type;
+goto next_load;
+}
 						if (dom->opcode == OP_LOAD)
 							continue;
 						goto next_load;
