@@ -217,6 +217,12 @@ static bool try_to_kill_store(struct instruction *insn,
 
 	if (dominance) {
 		/* possible partial dominance? */
+		if (dominance == -3) {	// dom covers insn
+			if (is_zero(dom->target) && is_zero(insn->target)) {
+				kill_instruction_force(insn);
+				goto next_store;
+			}
+		}
 		if (dominance < 0)
 			return false;
 		if (insn->target == dom->target && insn->bb == dom->bb) {
