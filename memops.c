@@ -215,27 +215,25 @@ static bool try_to_kill_store(struct instruction *insn,
 {
 	int dominance = dominates(insn, dom, local);
 
-	if (dominance) {
-		/* possible partial dominance? */
-		if (dominance == -3) {	// dom covers insn
-			if (is_zero(dom->target) && is_zero(insn->target)) {
-				kill_instruction_force(insn);
-				goto next_store;
-			}
-		}
-		if (dominance < 0)
-			return false;
-		if (insn->target == dom->target && insn->bb == dom->bb) {
-			// found a memop which makes the store redundant
-			kill_instruction_force(insn);
-			return false;
-		}
+	dominance = dominates(insn, dom, local);
+	switch (dominance) {
+	case 0:
+		break;
+	case 1:
+	case -4:
 		if (dom->opcode == OP_LOAD)
-			return false;
-		if (dom->is_volatile)
 			return false;
 		/* Yeehaa! Found one! */
 		kill_instruction_force(dom);
+		break;
+	case -3:
+		if (is_zero(dom->target) && is_zero(insn->target)) {
+			kill_instruction_force(insn);
+			return false;
+		}
+		break;
+	default:
+		return false;
 	}
 	return true;
 }
