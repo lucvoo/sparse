@@ -70,4 +70,8 @@ static inline int log2_exact(unsigned long long val)
 	return 8 * sizeof(val) - __builtin_clzl(val) - 1;
 }
 
+static inline unsigned long long roundup_mask(unsigned long long val, unsigned long long mask)
+{
+	return (val + mask) & ~mask;
+}
 #endif
