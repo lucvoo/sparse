@@ -27,10 +27,14 @@ static void rewrite_load_instruction(struct instruction *insn, struct pseudo_lis
 	 * phi nodes.
 	 */
 	FOR_EACH_PTR(dominators, phi) {
-		if (!new)
+		if (!new) {
 			new = phi->def->phi_src;
-		else if (new != phi->def->phi_src)
-			goto complex_phi;
+		} else if (new != phi->def->phi_src) {
+			kill_use(&insn->src);
+			insn->opcode = OP_PHI;
+			insn->phi_list = dominators;
+			goto end;
+		}
 	} END_FOR_EACH_PTR(phi);
 
 	/*
@@ -42,12 +46,6 @@ static void rewrite_load_instruction(struct instruction *insn, struct pseudo_lis
 	FOR_EACH_PTR(dominators, phi) {
 		kill_instruction(phi->def);
 	} END_FOR_EACH_PTR(phi);
-	goto end;
-
-complex_phi:
-	kill_use(&insn->src);
-	insn->opcode = OP_PHI;
-	insn->phi_list = dominators;
 
 end:
 	repeat_phase |= REPEAT_CSE;
