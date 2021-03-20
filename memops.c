@@ -94,7 +94,6 @@ found_dominator:
 		phisrc->phi_node = insn;
 		insert_last_instruction(parent, phisrc);
 		phi = phisrc->target;
-		phi->ident = one->target->ident;
 		use_pseudo(insn, phi, add_pseudo(dominators, phi));
 	} END_FOR_EACH_PTR(parent);
 	return 1;

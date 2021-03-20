@@ -837,6 +837,7 @@ struct instruction *alloc_phisrc(pseudo_t pseudo, struct symbol *type)
 	phi->type = PSEUDO_PHI;
 	phi->nr = ++nr;
 	phi->def = insn;
+	phi->ident = pseudo->ident;
 
 	use_pseudo(insn, pseudo, &insn->phi_src);
 	insn->target = phi;
