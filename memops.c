@@ -184,6 +184,7 @@ static void simplify_loads(struct basic_block *bb)
 				}
 				rewrite_load_instruction(insn, dominators);
 			}
+			free_ptr_list(&dominators);
 		}
 next_load:
 		/* Do the next one */;
