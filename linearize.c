@@ -1639,8 +1639,8 @@ static pseudo_t add_join_conditional(struct entrypoint *ep, struct expression *e
 		return (phi1 == VOID) ? phi1 : phi1->def->src;
 
 	phi_node = alloc_typed_instruction(OP_PHI, expr->ctype);
-	link_phi(phi_node, phi1);
-	link_phi(phi_node, phi2);
+	link_phi(phi_node, phi1->def);
+	link_phi(phi_node, phi2->def);
 	phi_node->target = target = alloc_pseudo(phi_node);
 	add_one_insn(ep, phi_node);
 	return target;
@@ -1711,7 +1711,7 @@ static void insert_phis(struct basic_block *bb, pseudo_t src, struct symbol *cty
 	FOR_EACH_PTR(bb->parents, parent) {
 		struct instruction *phisrc = alloc_phisrc(src, ctype);
 		insert_last_instruction(parent, phisrc);
-		link_phi(node, phisrc->target);
+		link_phi(node, phisrc);
 	} END_FOR_EACH_PTR(parent);
 }
 
@@ -1744,7 +1744,7 @@ static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr
 	src2 = linearize_expression_to_bool(ep, expr->right);
 	src2 = cast_pseudo(ep, src2, &bool_ctype, ctype);
 	phi2 = alloc_phi(ep->active, src2, ctype);
-	link_phi(node, phi2);
+	link_phi(node, phi2->def);
 
 	// join
 	set_activeblock(ep, merge);
@@ -2004,7 +2004,7 @@ static void add_return(struct entrypoint *ep, struct basic_block *bb, struct sym
 	}
 	phi = alloc_phi(ep->active, src, ctype);
 	phi->ident = &return_ident;
-	link_phi(phi_node, phi);
+	link_phi(phi_node, phi->def);
 }
 
 static pseudo_t linearize_fn_statement(struct entrypoint *ep, struct statement *stmt)

@@ -333,7 +333,7 @@ static void ssa_rename_phi(struct instruction *insn)
 		pseudo_t phi = phisrc->target;
 		phi->ident = var->ident;
 		insert_last_instruction(par, phisrc);
-		link_phi(insn, phi);
+		link_phi(insn, phisrc);
 		mark_phi_used(val);
 	} END_FOR_EACH_PTR(par);
 }
