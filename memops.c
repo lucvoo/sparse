@@ -18,20 +18,20 @@
 #include "flow.h"
 
 
-static void convert_to_phinode(struct basic_block *bb, struct instruction *insn, struct instruction_list *dominators)
+static pseudo_t convert_to_phinode(struct basic_block *bb, struct instruction *insn, struct instruction_list *dominators)
 {
+	struct instruction *node = alloc_phi_node(bb, insn->type, insn->target->ident);
 	struct instruction *dom;
 
-	kill_use(&insn->src);
-	insn->opcode = OP_PHI;
-	insn->phi_list = NULL;
+	add_phi_node(bb, node);
 
 	// fill the 'arguments'
 	FOR_EACH_PTR(dominators, dom) {
 		struct instruction *phisrc = alloc_phisrc(dom->target, dom->type);
 		insert_last_instruction(dom->bb, phisrc);
-		link_phi(insn, phisrc);
+		link_phi(node, phisrc);
 	} END_FOR_EACH_PTR(dom);
+	return node->target;
 }
 
 static void rewrite_load_instruction(struct instruction *insn, struct instruction_list *dominators)
@@ -48,7 +48,7 @@ static void rewrite_load_instruction(struct instruction *insn, struct instructio
 		if (!new) {
 			new = dom->target;
 		} else if (new != dom->target) {
-			convert_to_phinode(bb, insn, dominators);
+			new = convert_to_phinode(bb, insn, dominators);
 			goto end;
 		}
 	} END_FOR_EACH_PTR(dom);
@@ -56,9 +56,8 @@ static void rewrite_load_instruction(struct instruction *insn, struct instructio
 	/*
 	 * All the same pseudo: replace it.
 	 */
-	replace_with_pseudo(insn, new);
-
 end:
+	replace_with_pseudo(insn, new);
 	repeat_phase |= REPEAT_CSE;
 }
 
