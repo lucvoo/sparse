@@ -93,6 +93,7 @@ repeat:
 	 */
 	do {
 		simplify_memops(ep);
+	ir_validate(ep);
 		do {
 			repeat_phase = 0;
 			clean_up_insns(ep);
