@@ -129,11 +129,12 @@ static bool compatible_loads(struct instruction *a, struct instruction *b)
 	return true;
 }
 
-static void rewrite_dominated_load(struct instruction *insn, int local)
+static void rewrite_dominated_load(struct instruction *insn)
 {
 	struct instruction_list *dominators = NULL;
 	struct basic_block *bb = insn->bb;
 	pseudo_t pseudo = insn->src;
+	int local = local_pseudo(pseudo);
 
 	bb->generation = ++bb_generation;
 	if (find_dominating_parents(insn, bb, &dominators, local)) {
@@ -152,6 +153,7 @@ static void rewrite_dominated_load(struct instruction *insn, int local)
 
 static void simplify_loads(struct basic_block *bb)
 {
+	struct instruction_list *worklist = NULL;
 	struct instruction *insn;
 
 	FOR_EACH_PTR_REVERSE(bb->insns, insn) {
@@ -191,11 +193,16 @@ static void simplify_loads(struct basic_block *bb)
 			} END_FOR_EACH_PTR_REVERSE(dom);
 
 			/* OK, go find the parents */
-			rewrite_dominated_load(insn, local);
+			add_instruction(&worklist, insn);
 		}
 next_load:
 		/* Do the next one */;
 	} END_FOR_EACH_PTR_REVERSE(insn);
+
+	FOR_EACH_PTR(worklist, insn) {
+		rewrite_dominated_load(insn);
+	} END_FOR_EACH_PTR(insn);
+	free_ptr_list(&worklist);
 }
 
 static bool try_to_kill_store(struct instruction *insn,
