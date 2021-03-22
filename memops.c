@@ -129,6 +129,27 @@ static bool compatible_loads(struct instruction *a, struct instruction *b)
 	return true;
 }
 
+static void rewrite_dominated_load(struct instruction *insn, int local)
+{
+	struct instruction_list *dominators = NULL;
+	struct basic_block *bb = insn->bb;
+	pseudo_t pseudo = insn->src;
+
+	bb->generation = ++bb_generation;
+	if (find_dominating_parents(insn, bb, &dominators, local)) {
+		/* This happens with initial assignments to structures etc.. */
+		if (!dominators) {
+			if (local) {
+				assert(pseudo->type != PSEUDO_ARG);
+				replace_with_pseudo(insn, value_pseudo(0));
+			}
+			return;
+		}
+		rewrite_load_instruction(insn, dominators);
+	}
+	free_ptr_list(&dominators);
+}
+
 static void simplify_loads(struct basic_block *bb)
 {
 	struct instruction *insn;
@@ -137,7 +158,6 @@ static void simplify_loads(struct basic_block *bb)
 		if (!insn->bb)
 			continue;
 		if (insn->opcode == OP_LOAD) {
-			struct instruction_list *dominators;
 			struct instruction *dom;
 			pseudo_t pseudo = insn->src;
 			int local = local_pseudo(pseudo);
@@ -171,20 +191,7 @@ static void simplify_loads(struct basic_block *bb)
 			} END_FOR_EACH_PTR_REVERSE(dom);
 
 			/* OK, go find the parents */
-			bb->generation = ++bb_generation;
-			dominators = NULL;
-			if (find_dominating_parents(insn, bb, &dominators, local)) {
-				/* This happens with initial assignments to structures etc.. */
-				if (!dominators) {
-					if (local) {
-						assert(pseudo->type != PSEUDO_ARG);
-						replace_with_pseudo(insn, value_pseudo(0));
-					}
-					goto next_load;
-				}
-				rewrite_load_instruction(insn, dominators);
-			}
-			free_ptr_list(&dominators);
+			rewrite_dominated_load(insn, local);
 		}
 next_load:
 		/* Do the next one */;
