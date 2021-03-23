@@ -65,6 +65,7 @@ static int find_dominating_parents(struct instruction *insn, struct basic_block 
 {
 	struct basic_block *parent;
 
+loop:
 	FOR_EACH_PTR(bb->parents, parent) {
 		struct instruction *one;
 
@@ -89,9 +90,8 @@ static int find_dominating_parents(struct instruction *insn, struct basic_block 
 
 		if (bb_list_size(bb->parents) != 1)
 			return 0;
-		if (!find_dominating_parents(insn, parent, dominators, local))
-			return 0;
-		continue;
+		bb = parent;
+		goto loop;
 
 found_dominator:
 		add_instruction(dominators, one);
