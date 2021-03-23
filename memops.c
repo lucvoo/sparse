@@ -34,7 +34,7 @@ static pseudo_t convert_to_phinode(struct basic_block *bb, struct instruction *i
 	return node->target;
 }
 
-static void rewrite_load_instruction(struct instruction *insn, struct instruction_list *dominators)
+static pseudo_t rewrite_load_instruction(struct instruction *insn, struct instruction_list *dominators)
 {
 	struct basic_block *bb = insn->bb;	// FIXME
 	struct instruction *dom;
@@ -48,17 +48,14 @@ static void rewrite_load_instruction(struct instruction *insn, struct instructio
 		if (!new) {
 			new = dom->target;
 		} else if (new != dom->target) {
-			new = convert_to_phinode(bb, insn, dominators);
-			goto end;
+			return convert_to_phinode(bb, insn, dominators);
 		}
 	} END_FOR_EACH_PTR(dom);
 
 	/*
 	 * All the same pseudo: replace it.
 	 */
-end:
-	replace_with_pseudo(insn, new);
-	repeat_phase |= REPEAT_CSE;
+	return new;
 }
 
 static int find_dominating_parents(struct instruction *insn, struct basic_block *bb, struct instruction_list **dominators, int local)
@@ -133,18 +130,22 @@ static void rewrite_dominated_load(struct instruction *insn)
 	struct basic_block *bb = insn->bb;
 	pseudo_t pseudo = insn->src;
 	int local = local_pseudo(pseudo);
+	pseudo_t val;
+	int changed = 0;
 
 	bb->generation = ++bb_generation;
 	if (find_dominating_parents(insn, bb, &dominators, local)) {
 		/* This happens with initial assignments to structures etc.. */
 		if (!dominators) {
-			if (local) {
-				assert(pseudo->type != PSEUDO_ARG);
-				replace_with_pseudo(insn, value_pseudo(0));
-			}
-			return;
+			if (!local)
+				return;
+			assert(pseudo->type != PSEUDO_ARG);
+			val = value_pseudo(0);
+		} else {
+			val = rewrite_load_instruction(insn, dominators);
 		}
-		rewrite_load_instruction(insn, dominators);
+		changed = replace_with_pseudo(insn, val);
+		repeat_phase |= changed;
 	}
 	free_ptr_list(&dominators);
 }
