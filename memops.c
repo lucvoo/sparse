@@ -79,9 +79,8 @@ loop:
 					continue;
 				return 0;
 			}
-			if (!dominance)
-				continue;
-			goto found_dominator;
+			if (dominance)
+				goto found_dominator;
 		} END_FOR_EACH_PTR_REVERSE(one);
 
 		if (parent->generation == bb->generation)
