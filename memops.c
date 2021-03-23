@@ -18,9 +18,9 @@
 #include "flow.h"
 
 
-static pseudo_t convert_to_phinode(struct basic_block *bb, struct instruction *insn, struct instruction_list *dominators)
+static pseudo_t convert_to_phinode(struct basic_block *bb, struct instruction_list *dominators, struct symbol *type, struct ident *ident)
 {
-	struct instruction *node = alloc_phi_node(bb, insn->type, insn->target->ident);
+	struct instruction *node = alloc_phi_node(bb, type, ident);
 	struct instruction *dom;
 
 	add_phi_node(bb, node);
@@ -34,9 +34,8 @@ static pseudo_t convert_to_phinode(struct basic_block *bb, struct instruction *i
 	return node->target;
 }
 
-static pseudo_t rewrite_load_instruction(struct instruction *insn, struct instruction_list *dominators)
+static pseudo_t same_dominator(struct instruction_list *dominators)
 {
-	struct basic_block *bb = insn->bb;	// FIXME
 	struct instruction *dom;
 	pseudo_t new = NULL;
 
@@ -45,16 +44,11 @@ static pseudo_t rewrite_load_instruction(struct instruction *insn, struct instru
 	 * phi nodes.
 	 */
 	FOR_EACH_PTR(dominators, dom) {
-		if (!new) {
+		if (!new)
 			new = dom->target;
-		} else if (new != dom->target) {
-			return convert_to_phinode(bb, insn, dominators);
-		}
+		else if (new != dom->target)
+			return NULL;
 	} END_FOR_EACH_PTR(dom);
-
-	/*
-	 * All the same pseudo: replace it.
-	 */
 	return new;
 }
 
@@ -101,7 +95,9 @@ found_dominator:
 		else
 			val = value_pseudo(0);
 	} else {
-		val = rewrite_load_instruction(insn, dominators);
+		val = same_dominator(dominators);
+		if (!val)
+			val = convert_to_phinode(bb, dominators, insn->type, insn->target->ident);
 		free_ptr_list(&dominators);
 	}
 	return val;
