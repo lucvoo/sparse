@@ -58,9 +58,10 @@ static pseudo_t rewrite_load_instruction(struct instruction *insn, struct instru
 	return new;
 }
 
-static int find_dominating_parents(struct instruction *insn, struct basic_block *bb, struct instruction_list **dominators, int local)
+static pseudo_t find_dominating_parents(struct instruction *insn, struct basic_block *bb, struct instruction_list **dominators, int local)
 {
 	struct basic_block *parent;
+	pseudo_t val;
 
 loop:
 	FOR_EACH_PTR(bb->parents, parent) {
@@ -74,26 +75,36 @@ loop:
 			if (dominance < 0) {
 				if (one->opcode == OP_LOAD)
 					continue;
-				return 0;
+				return NULL;
 			}
 			if (dominance)
 				goto found_dominator;
 		} END_FOR_EACH_PTR_REVERSE(one);
 
 		if (parent->generation == bb->generation)
-			return 0;
+			return NULL;
 		parent->generation = bb->generation;
 
 		if (bb_list_size(bb->parents) != 1)
-			return 0;
+			return NULL;
 		bb = parent;
 		goto loop;
 
 found_dominator:
 		add_instruction(dominators, one);
 	} END_FOR_EACH_PTR(parent);
-	return 1;
-}		
+	if (!*dominators) {
+		/* This happens with initial assignments to structures etc.. */
+		if (!local)
+			val = NULL;
+		else
+			val = value_pseudo(0);
+	} else {
+		val = rewrite_load_instruction(insn, *dominators);
+		free_ptr_list(dominators);
+	}
+	return val;
+}
 
 static int address_taken(pseudo_t pseudo)
 {
@@ -134,20 +145,11 @@ static void rewrite_dominated_load(struct instruction *insn)
 	int changed = 0;
 
 	bb->generation = ++bb_generation;
-	if (find_dominating_parents(insn, bb, &dominators, local)) {
-		/* This happens with initial assignments to structures etc.. */
-		if (!dominators) {
-			if (!local)
-				return;
-			assert(pseudo->type != PSEUDO_ARG);
-			val = value_pseudo(0);
-		} else {
-			val = rewrite_load_instruction(insn, dominators);
-		}
+	val = find_dominating_parents(insn, bb, &dominators, local);
+	if (val) {
 		changed = replace_with_pseudo(insn, val);
 		repeat_phase |= changed;
 	}
-	free_ptr_list(&dominators);
 }
 
 static void simplify_loads(struct basic_block *bb)
