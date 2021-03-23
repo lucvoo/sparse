@@ -58,8 +58,9 @@ static pseudo_t rewrite_load_instruction(struct instruction *insn, struct instru
 	return new;
 }
 
-static pseudo_t find_dominating_parents(struct instruction *insn, struct basic_block *bb, struct instruction_list **dominators, int local)
+static pseudo_t find_dominating_parents(struct instruction *insn, struct basic_block *bb, int local)
 {
+	struct instruction_list *dominators = NULL;
 	struct basic_block *parent;
 	pseudo_t val;
 
@@ -91,17 +92,17 @@ loop:
 		goto loop;
 
 found_dominator:
-		add_instruction(dominators, one);
+		add_instruction(&dominators, one);
 	} END_FOR_EACH_PTR(parent);
-	if (!*dominators) {
+	if (!dominators) {
 		/* This happens with initial assignments to structures etc.. */
 		if (!local)
 			val = NULL;
 		else
 			val = value_pseudo(0);
 	} else {
-		val = rewrite_load_instruction(insn, *dominators);
-		free_ptr_list(dominators);
+		val = rewrite_load_instruction(insn, dominators);
+		free_ptr_list(&dominators);
 	}
 	return val;
 }
@@ -137,7 +138,6 @@ static bool compatible_loads(struct instruction *a, struct instruction *b)
 
 static void rewrite_dominated_load(struct instruction *insn)
 {
-	struct instruction_list *dominators = NULL;
 	struct basic_block *bb = insn->bb;
 	pseudo_t pseudo = insn->src;
 	int local = local_pseudo(pseudo);
@@ -145,7 +145,7 @@ static void rewrite_dominated_load(struct instruction *insn)
 	int changed = 0;
 
 	bb->generation = ++bb_generation;
-	val = find_dominating_parents(insn, bb, &dominators, local);
+	val = find_dominating_parents(insn, bb, local);
 	if (val) {
 		changed = replace_with_pseudo(insn, val);
 		repeat_phase |= changed;
