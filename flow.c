@@ -102,6 +102,7 @@ static int rewrite_branch(struct basic_block *bb,
 	replace_bb_in_list(&bb->children, old, new, 1);
 	remove_bb_from_list(&old->parents, bb, 1);
 	add_bb(&new->parents, bb);
+	remove_phisources(bb, old);
 	return 1;
 }
 
