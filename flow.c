@@ -234,6 +234,7 @@ static int try_to_simplify_bb(struct basic_block *bb, struct instruction *first,
 	 * No sane simplification can be done when we have this.
 	 */
 	bogus = !phi_check(first);
+if (bogus) { show_entry(bb->ep); asm("int $3"); }
 
 	FOR_EACH_PTR(first->phi_list, phi) {
 		struct instruction *def = phi->def;
