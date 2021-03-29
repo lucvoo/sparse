@@ -72,8 +72,6 @@ static int find_dominating_parents(struct instruction *insn, struct basic_block 
 			int dominance;
 			if (!one->bb)
 				continue;
-			if (one == insn)
-				goto no_dominance;
 			dominance = dominates(insn, one, local);
 			if (dominance < 0) {
 				if (one->opcode == OP_LOAD)
@@ -84,7 +82,7 @@ static int find_dominating_parents(struct instruction *insn, struct basic_block 
 				continue;
 			goto found_dominator;
 		} END_FOR_EACH_PTR_REVERSE(one);
-no_dominance:
+
 		if (parent->generation == bb->generation)
 			continue;
 		parent->generation = bb->generation;
