@@ -154,6 +154,19 @@ reg2:	MUL.Q(s32, s32)		[10] => mulhu	%rd:hi, %a1, %a2; mul	%rd:lo, %a1, %a2
 reg:	SEL(reg, reg, reg)	[3] =>		TODO select
 
 ////////////////////////////////////////////////////////////////////////
+//// Bit Manip
+
+//reg:	AND(NOT(reg),reg)	[1] => andn	%rd, %r1, %r2
+//reg:	OR(NOT(reg),reg)	[1] => orn	%rd, %r1, %r2
+//reg:	XOR(NOT(reg), reg)	[1] => xnor	%rd, %r1, %r2
+//reg:	NOT(XOR(reg, reg))	[1] => xnor	%rd, %r11, %r12
+//reg:	SEL(reg,reg,reg)	[2] => cmov	%rd, %r1, %r2, %r3
+
+//reg:	SEXT#B(reg,shamt)	[1] => sext.b	%rd, %r1
+//reg:	SEXT#H(reg,shamt)	[1] => sext.h	%rd, %r1
+//reg:	ZEXT#H(reg,shamt)	[1] => zext.h	%rd, %r1
+
+////////////////////////////////////////////////////////////////////////
 //// floating-point
 
 :	freg
