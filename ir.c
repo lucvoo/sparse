@@ -159,14 +159,11 @@ static int check_switch(struct entrypoint *ep, struct instruction *insn)
 
 static int check_return(struct instruction *insn)
 {
-#if 0
 	struct symbol *ctype = insn->type;
 
 	if (ctype && ctype->bit_size > 0 && insn->src == VOID) {
 		sparse_error(insn->pos, "return without value");
-		return 1;
 	}
-#endif
 	return 0;
 }
 
