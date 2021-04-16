@@ -190,27 +190,6 @@ out:
 	return false;
 }
 
-///
-// check if the sources of a phi-node match with the parent BBs
-static bool phi_check(struct instruction *node)
-{
-	struct basic_block *bb;
-	pseudo_t phi;
-
-	PREPARE_PTR_LIST(node->bb->parents, bb);
-	FOR_EACH_PTR(node->phi_list, phi) {
-		if (phi == VOID || !phi->def)
-			continue;
-		if (phi->def->bb != bb)
-			return false;
-		NEXT_PTR_LIST(bb);
-	} END_FOR_EACH_PTR(phi);
-	if (bb)
-		return false;
-	FINISH_PTR_LIST(bb);
-	return true;
-}
-
 /*
  * When we reach here, we have:
  *  - a basic block that ends in a conditional branch and
@@ -226,15 +205,6 @@ static int try_to_simplify_bb(struct basic_block *bb, struct instruction *first,
 {
 	int changed = 0;
 	pseudo_t phi;
-	int bogus;
-
-	/*
-	 * This a due to improper dominance tracking during
-	 * simplify_symbol_usage()/conversion to SSA form.
-	 * No sane simplification can be done when we have this.
-	 */
-	bogus = !phi_check(first);
-if (bogus) { show_entry(bb->ep); asm("int $3"); }
 
 	FOR_EACH_PTR(first->phi_list, phi) {
 		struct instruction *def = phi->def;
@@ -264,7 +234,7 @@ if (bogus) { show_entry(bb->ep); asm("int $3"); }
 			continue;
 		changed |= rewrite_branch(source, &br->bb_true, bb, target);
 		changed |= rewrite_branch(source, &br->bb_false, bb, target);
-		if (changed && !bogus)
+		if (changed)
 			kill_use(THIS_ADDRESS(phi));
 	} END_FOR_EACH_PTR(phi);
 	return changed;
