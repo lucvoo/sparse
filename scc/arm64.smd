@@ -187,6 +187,20 @@ reg:	SEXT(TRUNC(reg,sh),sh)	[1] => sbfx	%rd, %r11, #0, %c2
 reg:	SEXT(lsr, sh)		[1] => sbfx	%rd, %r11, %c12, %c2
 reg:	SEXT(TRUNC(lsr,sh),sh)	[1] => sbfx	%rd, %r111, %c112, %c2
 
+// if (%c2 < c12)
+//reg:	LSR(SHL(reg, sh), sh)	[1] => ubfiz	%rd, %r11, (%c12-%c2), (32-%c12)
+// if (%c2 < c12)
+//reg:	ASR(SHL(reg, sh), sh)	[1] => sbfiz	%rd, %r11, (%c12-%c2), (32-%c12)
+// if (%c2 > c12)
+//reg:	LSR(SHL(reg, sh), sh)	[1] => ubfx	%rd, %r11, (%c2-%c12), (32-%c2)
+// if (%c2 > c12)
+//reg:	ASR(SHL(reg, sh), sh)	[1] => sbfx	%rd, %r11, (%c2-%c12), (32-%c2)
+
+//reg:	OR(AND(reg, bimm),AND(SHL(reg, sh),bimm)) [1] => bfi	%rd, %r11, %r211, %c212, log2( %c22 >> %c212)
+
+// if mask(%c22, 0) && (%c22 == ~%c22)
+reg:	OR(AND(reg, bimm), AND(ASR(reg, sh), bimm)) [1] => bfxil	%rd, %r11, %c212, log2(%c22)
+
 //// compare
 reg:	SET_EQ(condf, zero)	[1] => cset	%rd, %a1
 reg:	SET_NE(condt, zero)	[1] => cset	%rd, %a1
