@@ -163,8 +163,8 @@ reg:	ROR(reg, sh)	[1] => ror	%rd, %r1, %c2
 reg:	ROR(reg, reg)	[1] => rorv	%rd, %r1, %r2
 
 //// sign/zero extension & truncation
-reg:	ZEXT#B(reg,sh)	[1] => uxtb	%rd, %r1
-reg:	ZEXT#H(reg,sh)	[1] => uxth	%rd, %r1
+reg:	ZEXT#B(reg,sh)	[1] => and	%rd, %r1, #0xff
+reg:	ZEXT#H(reg,sh)	[1] => and	%rd, %r1, #0xffff
 reg:	ZEXT(reg, sh)	[1] => ubfx	%rd, %r1, #0, %c2
 reg:	zxl		[1] => uxtw	%rd, %a0
 reg:	SEXT#B(reg,sh)	[1] => sxtb	%rd, %r1
