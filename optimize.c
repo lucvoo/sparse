@@ -61,6 +61,9 @@ void optimize(struct entrypoint *ep)
 	if (fdump_ir & PASS_LINEARIZE)
 		show_entry(ep);
 
+	if (dbg_ir)
+		kill_dead_instructions(ep);
+
 	/*
 	 * Do trivial flow simplification - branches to
 	 * branches, kill dead basicblocks etc
@@ -93,6 +96,7 @@ repeat:
 	 */
 	do {
 		simplify_memops(ep);
+	ir_validate(ep);
 		do {
 			repeat_phase = 0;
 			clean_up_insns(ep);

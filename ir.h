@@ -4,5 +4,6 @@
 #include "linearize.h"
 
 int ir_validate(struct entrypoint *ep);
+int ir_validate_phi(struct entrypoint *ep);
 
 #endif

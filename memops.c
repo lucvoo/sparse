@@ -16,89 +16,93 @@
 #include "linearize.h"
 #include "simplify.h"
 #include "flow.h"
+#include "ir.h"
 
-static void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *dominators)
+
+static pseudo_t convert_to_phinode(struct basic_block *bb, struct instruction_list *dominators, struct symbol *type, struct ident *ident)
 {
+	struct instruction *node = alloc_phi_node(bb, type, ident);
+	struct instruction *dom;
+
+	add_phi_node(bb, node);
+
+	// fill the 'arguments'
+	FOR_EACH_PTR(dominators, dom) {
+		struct instruction *phisrc = alloc_phisrc(dom->target, dom->type);
+		insert_last_instruction(dom->bb, phisrc);
+		link_phi(node, phisrc);
+	} END_FOR_EACH_PTR(dom);
+	return node->target;
+}
+
+static pseudo_t same_dominator(struct instruction_list *dominators)
+{
+	struct instruction *dom;
 	pseudo_t new = NULL;
-	pseudo_t phi;
 
 	/*
 	 * Check for somewhat common case of duplicate
 	 * phi nodes.
 	 */
-	FOR_EACH_PTR(dominators, phi) {
+	FOR_EACH_PTR(dominators, dom) {
 		if (!new)
-			new = phi->def->phi_src;
-		else if (new != phi->def->phi_src)
-			goto complex_phi;
-	} END_FOR_EACH_PTR(phi);
-
-	/*
-	 * All the same pseudo - mark the phi-nodes unused
-	 * and convert the load into a LNOP and replace the
-	 * pseudo.
-	 */
-	replace_with_pseudo(insn, new);
-	FOR_EACH_PTR(dominators, phi) {
-		kill_instruction(phi->def);
-	} END_FOR_EACH_PTR(phi);
-	goto end;
-
-complex_phi:
-	kill_use(&insn->src);
-	insn->opcode = OP_PHI;
-	insn->phi_list = dominators;
-
-end:
-	repeat_phase |= REPEAT_CSE;
+			new = dom->target;
+		else if (new != dom->target)
+			return NULL;
+	} END_FOR_EACH_PTR(dom);
+	return new;
 }
 
-static int find_dominating_parents(struct instruction *insn,
-	struct basic_block *bb, struct pseudo_list **dominators,
-	int local)
+static pseudo_t find_dominating_parents(struct instruction *insn, struct basic_block *bb, int local)
 {
+	struct instruction_list *dominators = NULL;
 	struct basic_block *parent;
+	pseudo_t val;
 
+loop:
 	FOR_EACH_PTR(bb->parents, parent) {
-		struct instruction *phisrc;
 		struct instruction *one;
-		pseudo_t phi;
 
 		FOR_EACH_PTR_REVERSE(parent->insns, one) {
 			int dominance;
 			if (!one->bb)
 				continue;
-			if (one == insn)
-				goto no_dominance;
 			dominance = dominates(insn, one, local);
 			if (dominance < 0) {
 				if (one->opcode == OP_LOAD)
 					continue;
-				return 0;
+				return NULL;
 			}
-			if (!dominance)
-				continue;
-			goto found_dominator;
+			if (dominance)
+				goto found_dominator;
 		} END_FOR_EACH_PTR_REVERSE(one);
-no_dominance:
+
 		if (parent->generation == bb->generation)
-			continue;
+			return NULL;
 		parent->generation = bb->generation;
 
-		if (!find_dominating_parents(insn, parent, dominators, local))
-			return 0;
-		continue;
+		if (bb_list_size(bb->parents) != 1)
+			return NULL;
+		bb = parent;
+		goto loop;
 
 found_dominator:
-		phisrc = alloc_phisrc(one->target, one->type);
-		phisrc->phi_node = insn;
-		insert_last_instruction(parent, phisrc);
-		phi = phisrc->target;
-		phi->ident = phi->ident ? : one->target->ident;
-		use_pseudo(insn, phi, add_pseudo(dominators, phi));
+		add_instruction(&dominators, one);
 	} END_FOR_EACH_PTR(parent);
-	return 1;
-}		
+	if (!dominators) {
+		/* This happens with initial assignments to structures etc.. */
+		if (!local)
+			val = NULL;
+		else
+			val = value_pseudo(0);
+	} else {
+		val = same_dominator(dominators);
+		if (!val)
+			val = convert_to_phinode(bb, dominators, insn->type, insn->target->ident);
+		free_ptr_list(&dominators);
+	}
+	return val;
+}
 
 static int address_taken(pseudo_t pseudo)
 {
@@ -129,8 +133,25 @@ static bool compatible_loads(struct instruction *a, struct instruction *b)
 	return true;
 }
 
+static void rewrite_dominated_load(struct instruction *insn)
+{
+	struct basic_block *bb = insn->bb;
+	pseudo_t pseudo = insn->src;
+	int local = local_pseudo(pseudo);
+	pseudo_t val;
+	int changed = 0;
+
+	bb->generation = ++bb_generation;
+	val = find_dominating_parents(insn, bb, local);
+	if (val) {
+		changed = replace_with_pseudo(insn, val);
+		repeat_phase |= changed;
+	}
+}
+
 static void simplify_loads(struct basic_block *bb)
 {
+	struct instruction_list *worklist = NULL;
 	struct instruction *insn;
 
 	FOR_EACH_PTR_REVERSE(bb->insns, insn) {
@@ -140,7 +161,6 @@ static void simplify_loads(struct basic_block *bb)
 			struct instruction *dom;
 			pseudo_t pseudo = insn->src;
 			int local = local_pseudo(pseudo);
-			struct pseudo_list *dominators;
 
 			if (insn->is_volatile)
 				continue;
@@ -171,30 +191,16 @@ static void simplify_loads(struct basic_block *bb)
 			} END_FOR_EACH_PTR_REVERSE(dom);
 
 			/* OK, go find the parents */
-			bb->generation = ++bb_generation;
-			dominators = NULL;
-			if (find_dominating_parents(insn, bb, &dominators, local)) {
-				/* This happens with initial assignments to structures etc.. */
-				if (!dominators) {
-					if (local) {
-						assert(pseudo->type != PSEUDO_ARG);
-						replace_with_pseudo(insn, value_pseudo(0));
-					}
-					goto next_load;
-				}
-				rewrite_load_instruction(insn, dominators);
-			} else {	// cleanup pending phi-sources
-				int repeat = repeat_phase;
-				pseudo_t phi;
-				FOR_EACH_PTR(dominators, phi) {
-					kill_instruction(phi->def);
-				} END_FOR_EACH_PTR(phi);
-				repeat_phase = repeat;
-			}
+			add_instruction(&worklist, insn);
 		}
 next_load:
 		/* Do the next one */;
 	} END_FOR_EACH_PTR_REVERSE(insn);
+
+	FOR_EACH_PTR(worklist, insn) {
+		rewrite_dominated_load(insn);
+	} END_FOR_EACH_PTR(insn);
+	free_ptr_list(&worklist);
 }
 
 static bool try_to_kill_store(struct instruction *insn,
@@ -292,4 +298,6 @@ void simplify_memops(struct entrypoint *ep)
 			continue;
 		kill_dead_stores(ep, pseudo, local_pseudo(pseudo));
 	} END_FOR_EACH_PTR(pseudo);
+
+	ir_validate_phi(ep);
 }

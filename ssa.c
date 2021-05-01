@@ -330,10 +330,9 @@ static void ssa_rename_phi(struct instruction *insn)
 		struct instruction *def = lookup_var(par, var);
 		pseudo_t val = def ? def->target : undef_pseudo();
 		struct instruction *phisrc = alloc_phisrc(val, var);
-		pseudo_t phi = phisrc->target;
-		phi->ident = var->ident;
+		phisrc->target->ident = var->ident;
 		insert_last_instruction(par, phisrc);
-		link_phi(insn, phi);
+		link_phi(insn, phisrc);
 		mark_phi_used(val);
 	} END_FOR_EACH_PTR(par);
 }

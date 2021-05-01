@@ -2726,6 +2726,26 @@ static int simplify_setval(struct instruction *insn)
 	return 0;
 }
 
+void kill_dead_instructions(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+
+	FOR_EACH_PTR(ep->bbs, bb) {
+		struct instruction *insn;
+		FOR_EACH_PTR(bb->insns, insn) {
+			if (!insn->bb)
+				continue;
+			if (!(opcode_table[insn->opcode].flags & OPF_TARGET))
+				continue;
+			if (insn->opcode == OP_CALL)
+				continue;
+			if (has_users(insn->target))
+				continue;
+			kill_instruction(insn);
+		} END_FOR_EACH_PTR(insn);
+	} END_FOR_EACH_PTR(bb);
+}
+
 int simplify_instruction(struct instruction *insn)
 {
 	unsigned flags;

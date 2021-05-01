@@ -304,10 +304,11 @@ static inline void use_pseudo(struct instruction *insn, pseudo_t p, pseudo_t *pp
 		add_pseudo_user_ptr(alloc_pseudo_user(insn, pp), &p->users);
 }
 
-static inline void link_phi(struct instruction *node, pseudo_t phi)
+static inline void link_phi(struct instruction *node, struct instruction *src)
 {
+	pseudo_t phi = src->target;
 	use_pseudo(node, phi, add_pseudo(&node->phi_list, phi));
-	phi->def->phi_node = node;
+	src->phi_node = node;
 }
 
 static inline void remove_bb_from_list(struct basic_block_list **list, struct basic_block *entry, int count)
