@@ -361,19 +361,19 @@ reg:	SEL(condf, NEG(reg), reg0)	[1] => csneg	%rd, %r21, %r3, %a1
 //// load and store
 // FIXME: need to add pre and post writeback modes
 
-asym:	GSYM		[1] => adrp	%rt, %l0; add	%rt, %rt, :lo12:%l0
-asym:	LSYM		[1] => add	%rt, sp, SP@%c0
-reg:	asym		    == %rp	// this make a PSEUDO_REG from a _SYM
-addr:	asym		    == %rp
+asym:	GSYM			[1] => adrp	%rt, %l0; add	%rt, %rt, :lo12:%l0
+asym:	LSYM			[1] => add	%rt, sp, SP@%c0
+reg:	asym			    == %rp	// this make a PSEUDO_REG from a _SYM
+addr:	asym			    == %rp
 
-addr:	reg		    == %r0
-addr:	ADD(reg,reg)	    == %r1, %r2
+addr:	reg			    == %r0
+addr:	ADD(reg,reg)		    == %r1, %r2
 addr:	ADD(reg,ZEXT#L(reg,sh))	    == %r1, %r21, uxtw
 addr:	ADD(reg,SEXT#L(reg,sh))	    == %r1, %r21, sxtw
 
 addr8:	addr
-addr8:	ADD(reg, pimm8)		== %r1, %c2
-addr8:	ADD(reg,SHL(reg,sh))	== %r1, %r21, lsl #%c22	// if sh == 3
+addr8:	ADD(reg, pimm8)		    == %r1, %c2
+addr8:	ADD(reg,SHL(reg,sh))	    == %r1, %r21, lsl #%c22	// if sh == 3
 reg:	LOAD.Q(addr8)		[4] => ldr	%rd, [%a1]
 :	STORE.Q(addr8, reg)	[1] => str	%r2, [%a1]
 
