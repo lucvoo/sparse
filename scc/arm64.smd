@@ -77,10 +77,10 @@ zxl:	ZEXT#L(reg,sh)	== %r1
 xsh:	CONST		    == %c0 // if range(0, 4)
 xt:	ZEXT#B(reg,sh)	    == %r1 uxtb
 xt:	ZEXT#H(reg,sh)	    == %r1 uxth
-xt:	zxl		    == %a0 uxtw
+xt:	ZEXT#L(reg,sh)	    == %r1 uxtw
 xt:	SEXT#B(reg,sh)	    == %r1 sxtb
 xt:	SEXT#H(reg,sh)	    == %r1 sxth
-xt:	sxl		    == %a0 sxtw
+xt:	SEXT#L(reg,sh)	    == %r1 sxtw
 xreg:	SHL(reg,xsh)	[0] == %r1 lsl %c2
 xreg:	SHL(xt, xsh)	[0] == %a1 %c2
 xreg:	xt		[0] == %a0
@@ -165,12 +165,12 @@ reg:	ROR(reg, reg)	[1] => rorv	%rd, %r1, %r2
 //// sign/zero extension & truncation
 reg:	ZEXT#B(reg,sh)	[1] => and	%rd, %r1, #0xff
 reg:	ZEXT#H(reg,sh)	[1] => and	%rd, %r1, #0xffff
+reg:	ZEXT#L(reg,sh)	[1] => uxtw	%rd, %r1
 reg:	ZEXT(reg, sh)	[1] => ubfx	%rd, %r1, #0, %c2
-reg:	zxl		[1] => uxtw	%rd, %a0
 reg:	SEXT#B(reg,sh)	[1] => sxtb	%rd, %r1
 reg:	SEXT#H(reg,sh)	[1] => sxth	%rd, %r1
+reg:	SEXT#L(reg,sh)	[1] => sxtw	%rd, %r1
 reg:	SEXT(reg, sh)	[1] => sbfx	%rd, %r1, #0, %c2
-reg:	sxl		[1] => sxtw	%rd, %a0
 
 reg:	TRUNC(reg, sh)	[1] => and	%rd, %r1, #%m2
 
@@ -368,8 +368,8 @@ addr:	asym		    == %rp
 
 addr:	reg		    == %r0
 addr:	ADD(reg,reg)	    == %r1, %r2
-addr:	ADD(reg,zxl)	    == %r1, %a2, uxtw
-addr:	ADD(reg,sxl)	    == %r1, %a2, sxtw
+addr:	ADD(reg,ZEXT#L(reg,sh))	    == %r1, %r21, uxtw
+addr:	ADD(reg,SEXT#L(reg,sh))	    == %r1, %r21, sxtw
 
 addr8:	addr
 addr8:	ADD(reg, pimm8)		== %r1, %c2
