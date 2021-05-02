@@ -370,7 +370,7 @@ int kill_insn(struct instruction *insn, int force)
 		break;
 
 	case OP_LOAD:
-		if (!force && insn->is_volatile)
+		if (!force && insn->is_volatile && insn->size != 0)
 			return 0;
 		kill_use(&insn->src);
 		break;
