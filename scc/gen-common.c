@@ -175,6 +175,27 @@ static void emit_tmpl(struct state *s, int rule)
 			fputs(out, stdout);
 			break;
 
+		case 'm':	// constant mask
+			switch ((arg = *tmpl++)) {
+			case '1' ... ARG_MAX: {
+				struct state *p = s->kids[arg-'1'];
+
+				arg = *tmpl;
+				while (arg >= '1' && arg <= ARG_MAX) {
+					p = p->kids[arg-'1'];
+					arg = *++tmpl;
+				}
+
+				if (p && p->src && p->src->type == PSEUDO_VAL)
+					printf("0x%x" , (1 << p->src->value) - 1);
+				break;
+			}
+
+			default:
+				/* FIXME */;
+			}
+			break;
+
 		case 'b':	// branch
 			printf(".L%d", s->insn->bb_true->nr);
 			if (s->insn->bb_false)
