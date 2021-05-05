@@ -143,6 +143,15 @@ static void translate_sel(struct instruction *insn)
 	label_state(s);
 }
 
+static void translate_slice(struct instruction *insn)
+{
+	struct cg_state *s = alloc_state(insn->opcode, insn->target, insn);
+
+	s->kids[0] = get_src_state(insn->bb, insn->src1);
+	s->kids[1] = get_src_state(insn->bb, value_pseudo(insn->from));
+	label_state(s);
+}
+
 static void translate_memop(struct instruction *insn)
 {
 	struct cg_state *s;
@@ -380,6 +389,10 @@ static void translate_insn(struct instruction *insn)
 		// Ignore for now;
 		break;
 
+	case OP_SLICE:
+		translate_slice(insn);
+		break;
+
 	case OP_SYMADDR:
 	case OP_BADOP:
 		// Should never happen ?
@@ -388,7 +401,6 @@ static void translate_insn(struct instruction *insn)
 	case OP_PHISOURCE:
 		// Should never happen if unSSA is used
 
-	case OP_SLICE:
 	case OP_ASM:
 		translate_default(insn);
 		break;		// FIXME
