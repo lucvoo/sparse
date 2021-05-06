@@ -37,29 +37,12 @@ struct cg_state *alloc_state(int op, pseudo_t src, struct instruction *insn)
 
 #define	ARG_MAX	('0' + NBR_KIDS)
 
-static const char *emit_pseudo(pseudo_t p, int force_reg)
-{
-#define	BSIZE	64
-	static char buffer[4][BSIZE];
-	static int n;
-
-	if (!p)
-		return "??";
-
-	if (force_reg && p->type != PSEUDO_ARG) {
-		char *buf = buffer[++n & 3];
-		snprintf(buf, BSIZE, "%%r%d", p->nr);
-		return buf;
-	}
-
-	return show_pseudo(p);
-}
-
 static void emit_tmpl(struct state *s, int rule)
 {
 	const struct rule_info *rinfo = &rules_info[rule];
 	const char *tmpl = rinfo->action;
 	struct state *k;
+	pseudo_t tmp_reg = NULL;
 	int nt;
 	int c;
 
@@ -78,7 +61,6 @@ static void emit_tmpl(struct state *s, int rule)
 
 	while ((c = *tmpl++)) {
 		const char *out;
-		int force_reg;
 		int type;
 		int arg;
 
@@ -115,19 +97,19 @@ static void emit_tmpl(struct state *s, int rule)
 			continue;
 		}
 
-		force_reg = 0;
 		out = "??";
 		// process the '%...'
 		type = *tmpl++;
 		switch (type) {
 		case 'r':	// register
-			force_reg = 1;
 		case 'l':	// label
 		case 'c':	// constant
 			switch ((arg = *tmpl++)) {
 			case 't':
 				if (s->src) {
-					out = emit_pseudo(s->src, 1);
+					if (!tmp_reg)
+						tmp_reg = alloc_pseudo(NULL);
+					out = show_pseudo(tmp_reg);
 				}
 				break;
 			case 'p':
@@ -158,9 +140,7 @@ static void emit_tmpl(struct state *s, int rule)
 					p = p->kids[arg-'1'];
 					arg = *++tmpl;
 				}
-
-				if (p && p->src)
-					out = emit_pseudo(p->src, force_reg);
+				out = show_pseudo(p->src);
 				break;
 
 			case 'z':	// for ARM64
@@ -246,6 +226,9 @@ static void emit_tmpl(struct state *s, int rule)
 			break;
 		}
 	}
+
+	if (tmp_reg)
+		s->src = tmp_reg;
 }
 
 static void emit_state(struct state *s, int rule)
