@@ -32,6 +32,7 @@ static struct ptree *tree(const char *, int, int, int, struct ptree *, struct pt
 %token  <val>		FIX10
 %token			EMIT "=>"
 %token			EXEC "=="
+%token			IF   "if"
 %token			SIZEB		/* '.B' */
 %token			SIZEH		/* '.H' */
 %token			SIZEL		/* '.L' */
@@ -47,6 +48,7 @@ static struct ptree *tree(const char *, int, int, int, struct ptree *, struct pt
 %type   <val>		cost
 %type   <val>		count
 %type   <val>		size
+%type   <str>		cond
 
 %%
 start	: entries
@@ -61,11 +63,13 @@ entry	: rule	'\n'
 	;
 
 rule	: lhs ':' tree cost	
-				{ mkrule(yylineno, $1, $3, $4, 0, NULL); }
+				{ mkrule(yylineno, $1, $3, $4, 0, NULL, NULL); }
+	| lhs ':' tree cost "if" cond
+				{ mkrule(yylineno, $1, $3,  0, 0, NULL, $6); }
 	| lhs ':' tree cost "==" TMPL
-				{ mkrule(yylineno, $1, $3, $4, 0, $6); }
+				{ mkrule(yylineno, $1, $3, $4, 0, $6, NULL); }
 	| lhs ':' tree cost "=>" TMPL
-				{ mkrule(yylineno, $1, $3, $4, 1, $6); }
+				{ mkrule(yylineno, $1, $3, $4, 1, $6, NULL); }
 	;
 
 
@@ -105,6 +109,9 @@ cost	: 			{ $$ = 0; }
 	| '[' INT ']'		{ $$ = $2 * 10; }
 	| '[' FIX10 ']'		{ $$ = $2; }
 	;
+
+cond	: { is_tmpl = 1; } TMPL { $$ = $2; }
+	;
 %%
 #include <stdarg.h>
 #include <ctype.h>
@@ -134,6 +141,7 @@ static int yylex(void)
 	while (1) {
 		const char *end;
 		const char *buf;
+		unsigned len;
 		int n;
 
 		if (is_tmpl) {
@@ -257,7 +265,10 @@ static int yylex(void)
 			buf = buffp - 1;
 			while (isalnum(*buffp) || *buffp == '_')
 				buffp++;
-			yylval.str = strndup(buf, buffp - buf);
+			len = buffp - buf;
+			if (buf[0] == 'i' && buf[1] == 'f' && len == 2)
+				return IF;
+			yylval.str = strndup(buf, len);
 			if (lookup_term(yylval.str) != -1)
 				return TID;
 

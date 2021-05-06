@@ -108,11 +108,11 @@ static struct nterm *mkrule_internal(int lineno, struct ptree *t)
 	struct nterm *nt;
 
 	nt = mk_internal_nterm();
-	mkrule(lineno, nt, t, 0, 0, NULL);
+	mkrule(lineno, nt, t, 0, 0, NULL, NULL);
 	return nt;
 }
 
-void mkrule(int lineno, struct nterm *lhs, struct ptree *rhs, int cost, int emit, const char *tmpl)
+void mkrule(int lineno, struct nterm *lhs, struct ptree *rhs, int cost, int emit, const char *tmpl, const char *cond)
 {
 	struct rule *r = malloc(sizeof(*r));
 	int i;
@@ -139,6 +139,7 @@ void mkrule(int lineno, struct nterm *lhs, struct ptree *rhs, int cost, int emit
 	r->cost = cost;
 	r->emit = emit;
 	r->tmpl = tmpl;
+	r->cond = cond;
 
 	append_rule(r);
 }
@@ -366,6 +367,29 @@ static void generate_base_rules(void)
 	}
 }
 
+static void print_condition(const struct rule *r)
+{
+	const char *str = r->cond;
+	int c;
+
+	while (1) {
+		switch (c = *str++) {
+		case 0:
+			printf(" && ");
+			return;
+		case '%':
+			c = *str++;
+			switch (c) {
+			case 'c':
+				printf("s->src->value");
+			}
+			break;
+		default:
+			putchar(c);
+		}
+	}
+}
+
 static void generate_op_label(int op)
 {
 	//int i;
@@ -411,6 +435,8 @@ static void generate_op_label(int op)
 				size -= 3;
 			printf("insn->size == %d && ", 4 << size);
 		}
+		if (r->cond)
+			print_condition(r);
 		printf("1) {\n");
 		printf("\t\t\tcost = ");
 		switch (r->arity) {

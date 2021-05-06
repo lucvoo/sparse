@@ -57,6 +57,7 @@ struct rule {
 	int		cost;		// static cost
 	unsigned int	emit:1;		// tmpl must be emitted vs. sub-pattern
 	const char	*tmpl;
+	const char	*cond;
 
 	struct rule	*next;
 };
@@ -64,7 +65,7 @@ struct rule {
 
 struct nterm *get_nterm(const char *name);
 struct ptree *mktree(const char *name, int count, int size, struct ptree *left, struct ptree *right, struct ptree *extra);
-void mkrule(int lineno, struct nterm *lhs, struct ptree *rhs, int cost, int emit, const char *tmpl);
+void mkrule(int lineno, struct nterm *lhs, struct ptree *rhs, int cost, int emit, const char *tmpl, const char *cond);
 
 int lookup_term(const char *name);
 int check_term(unsigned int idx, int arity);
