@@ -2730,6 +2730,8 @@ static int simplify_slice(struct instruction *insn)
 {
 	pseudo_t src = insn->src;
 
+	if (insn->from == 0)
+		return replace_opcode(insn, OP_TRUNC);
 	if (is_zero(src))
 		return replace_with_pseudo(insn, src);
 	return 0;
