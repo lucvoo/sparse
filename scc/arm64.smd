@@ -159,7 +159,7 @@ reg:	SEXT#H(reg,sh)	[1] => sxth	%rd, %r1
 reg:	SEXT(reg, sh)	[1] => sbfx	%rd, %r1, #0, %c2
 reg:	sxl		[1] => sxtw	%rd, %a0
 
-reg:	TRUNC(reg, sh)	[1] => and	%rd, %r1, #((1 << %c2) - 1)
+reg:	TRUNC(reg, sh)	[1] => and	%rd, %r1, #%m2
 
 //// bitfield extraction/insertion
 lsr:	LSR(reg, sh)	== %r1, %c1
