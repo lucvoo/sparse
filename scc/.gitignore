@@ -1,0 +1,4 @@
+codegen
+parse-smd.c
+gen-*.c
+test-*

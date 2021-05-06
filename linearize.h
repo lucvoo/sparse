@@ -87,11 +87,13 @@ struct asm_rules {
 
 DECLARE_ALLOCATOR(asm_rules);
 
+struct cg_state;
 struct instruction {
 	unsigned opcode:7,
 		 tainted:1,
 		 size:24;
 	struct basic_block *bb;
+	struct cg_state *cg_state;
 	struct position pos;
 	struct symbol *type;
 	pseudo_t target;

@@ -243,6 +243,7 @@ Q := $(V:1=)
 
 ########################################################################
 all: $(PROGRAMS)
+all: scc/
 
 ldflags += $($(@)-ldflags) $(LDFLAGS)
 ldlibs  += $($(@)-ldlibs)  $(LDLIBS)
@@ -265,6 +266,14 @@ cflags   += $($(*)-cflags) $(CPPFLAGS) $(CFLAGS)
 	$(Q)CHECK=./sparse ./cgcc -no-compile $(CHECKER_FLAGS) $(cflags) -c $<
 
 selfcheck: $(OBJS:.o=.sc)
+
+export Q CC CPPFLAGS CFLAGS AR LDFLAGS
+export CHECKER CHECKER_FLAGS
+scc/: $(LIBS)
+
+%/ %/selfcheck: FORCE
+	$(MAKE) -C $(@D) $(@F)
+
 
 SPARSE_VERSION:=$(shell git describe --dirty 2>/dev/null || echo '$(VERSION)')
 version.o: version.h
