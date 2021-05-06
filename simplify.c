@@ -2746,6 +2746,17 @@ void kill_dead_instructions(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(bb);
 }
 
+static int simplify_slice(struct instruction *insn)
+{
+	pseudo_t src = insn->src;
+
+	if (insn->from == 0)
+		return replace_opcode(insn, OP_TRUNC);
+	if (is_zero(src))
+		return replace_with_pseudo(insn, src);
+	return 0;
+}
+
 int simplify_instruction(struct instruction *insn)
 {
 	unsigned flags;
@@ -2810,7 +2821,7 @@ int simplify_instruction(struct instruction *insn)
 	case OP_PTRTU:
 		return replace_with_pseudo(insn, insn->src);
 	case OP_SLICE:
-		break;
+		return simplify_slice(insn);
 	case OP_SETVAL:
 		return simplify_setval(insn);
 	case OP_LABEL:
