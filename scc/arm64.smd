@@ -13,10 +13,8 @@ reg0:	ZERO		== %rz
 
 //// constants
 imm5:	CONST		// if range(0, 31)
-imm5:	ZERO
 
 simm:	CONST		// if range(0, 4095) [ << 12]
-simm:	ZERO
 
 pimm8:	CONST		// if range(0, 4095] * 8
 pimm4:	CONST		// if range(0, 4095] * 4
@@ -24,7 +22,6 @@ pimm2:	CONST		// if range(0, 4095] * 2
 pimm1:	CONST		// if range(0, 4095] * 1
 
 imm16:	CONST		// if range(0, 65535)
-imm16:	ZERO		//
 
 //nimm:	CONST		// if range(-4095, 0)
 
@@ -44,7 +41,6 @@ creg:	CONST		[4] => ldr	%rt, =%c0
 creg:	CONST		[2] => movw	%rt, #:lower16:%c0;  movt	%rt, #:upper16:%c0
 reg:	COPY(const)	[2] => movw	%rd, #:lower16:%c0;  movt	%rt, #:upper16:%c0
 creg:	imm16		[1] => mov	%rt, %c0
-creg:	ZERO		[1] => mov	%rt, #0
 reg:	creg		== %rt
 
 // TODO: constants synthesis with movn, movz, movk
