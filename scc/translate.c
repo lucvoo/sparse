@@ -59,10 +59,7 @@ static struct cg_state *get_src_state(struct basic_block *bb, pseudo_t src)
 		break;
 
 	case PSEUDO_VAL:
-		if (src->value == 0)
-			s = alloc_state(INSN_ZERO, src, NULL);
-		else
-			s = alloc_state(INSN_CONST, src, NULL);
+		s = alloc_state(INSN_CONST, src, NULL);
 		break;
 
 	case PSEUDO_SYM:
