@@ -9,13 +9,11 @@ reg2:	ARG		== %r0
 reg:	UNDEF
 reg:	VOID
 
-imm12:	CONST		// if range(-2048, 2047)
-imm12:	ZERO
-zero:	ZERO
-shamt:	CONST		// if range(0, 31)
+imm12:	CONST		if range(%c, -2048, 2047)
+zero:	CONST		if (%c == 0)
+shamt:	CONST		if range(%c, 0, 31)
 
 //reg:	imm12			[1] => lui	%rt, %c0
-reg:	ZERO			[1] => li	%rt, 0
 reg:	CONST			[4] => li	%rt, %c0
 reg:	LSYM			[2] => la	%rt, %l0
 reg:	GSYM			[2] => la	%rt, %l0
