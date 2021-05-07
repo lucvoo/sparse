@@ -265,7 +265,12 @@ tstle:	SET_GE(NEG(reg), simm)	[1] => cmn	%r1, %c2
 
 // TODO others cmn for non-commutative compares
 
+//// bit tests
+tsteq:	AND(reg,bimm)		[1] => tst	%r1, %c2
+tsteq:	AND(reg,rreg)		[1] => tst	%r1, %a2
+tsteq:	AND(rreg,reg)		[1] => tst	%r2, %a1
 
+////
 condt:	tsteq		== eq
 condt:	tstne		== ne
 condt:	tstlt		== lt
