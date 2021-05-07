@@ -7,23 +7,18 @@ reg:	ARG
 reg:	UNDEF
 reg:	VOID
 imm:	CONST		// FIXME: which kind/range
-imm:	ZERO
 const:	CONST
-zero:	ZERO
+zero:	CONST		if (%c == 0)
 sh:	CONST		// FIXME
 
-// for now those cannot work: a pseudo is either PSEUDO_VAL or PSEUDO_REG
-// the following is just some hackery to make it seems it is working
-creg:	CONST			[4] => ldr	%rt, =%c0
-creg:	CONST			[2] => movw	%rt, #:lower16:%c0;  movt	%rt, #:upper16:%c0
-reg:	COPY(const)		[2] => movw	%rt, #:lower16:%c1;  movt	%rt, #:upper16:%c1
-creg:	ZERO			[1] => mov	%rt, #0
-reg:	COPY(zero)		[1] => mov	%rd, #0
-reg:	creg			    == %rt
-
-reg:	COPY(reg)		[1] => mov	%rd, %r1
+// !!! WARNING !!! this '%rt' things is an horrible hackery
+reg:	CONST			[4] => ldr	%rt, =%c0
+reg:	CONST			[2] => movw	%rt, #:lower16:%c0;  movt	%rt, #:upper16:%c0
 
 reg:	SETVAL			[2] => ldr	%rd, %x
+
+reg:	COPY(reg)		[1] => mov	%rd, %r1
+reg:	COPY(CONST)		[2] => movw	%rd, #:lower16:%c1;  movt	%rd, #:upper16:%c1
 
 //// shifted register
 sreg:	SHL(reg, sh)		    == %r1, lsl %c2 //[1,31]
@@ -159,7 +154,7 @@ reg:	LOAD.Q(reg)		[6] => ldm	%r1, {%rd:lo, %rd:up}
 reg:	LOAD2.L(reg)		[6] => ldm	%r1, {%rd:lo, %rd:up}
 :	STORE2.L(reg, reg)	[4] => stm	%r1, {%r2:lo, %r2:up}
 
-:	STOREMEM(reg, LOADMEM(reg), const) [30]=> bl	memcpy(%r1, %r2.1, %c3)
+:	STOREMEM(reg, LOADMEM(reg), reg) [30]=> bl	memcpy(%r1, %r2.1, %c3)
 
 // compare
 cr_eq:	SET_EQ(reg, stdop)	[1] => cmp	%r1, %a2
