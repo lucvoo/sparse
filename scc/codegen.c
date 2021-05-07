@@ -594,8 +594,6 @@ static int process_md(const char *mdfile)
 
 static void generate_generator(const char *mdfile, const char *arch)
 {
-	printf("/* Automatically generated from %s */\n\n", mdfile);
-	generate_includes(arch);
 	generate_nterms();
 	generate_opcodes();
 	generate_rules();
@@ -625,6 +623,12 @@ int main(int argc, const char *argv[])
 	mdfile = argv[2];
 
 	get_nterm("");		// lhs for top rules = 1st nterm
+
+	printf("/* Automatically generated from %s */\n\n", mdfile);
+	generate_includes(arch);
+	printf("\n");
+	printf("#include \"%s.c\"\n", arch);
+	printf("\n");
 
 	if (process_md(mdfile))
 		exit(1);
