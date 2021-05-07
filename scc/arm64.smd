@@ -11,33 +11,33 @@ reg:	VOID
 reg:	zero		== %rz
 
 //// constants
-imm5:	CONST		// if range(0, 31)
-
-simm:	CONST		// if range(0, 4095) [ << 12]
-
-pimm8:	CONST		// if range(0, 4095] * 8
-pimm4:	CONST		// if range(0, 4095] * 4
-pimm2:	CONST		// if range(0, 4095] * 2
-pimm1:	CONST		// if range(0, 4095] * 1
-
-imm16:	CONST		// if range(0, 65535)
-
-//nimm:	CONST		// if range(-4095, 0)
-
-bimm:	CONST		// if "bitmask"
-
-bit:	CONST		// if == 1 << sh
-
-one:	CONST		// if == 1
-ones:	CONST		// if == -1
-
-zero:	ZERO
 const:	CONST
+zero:	CONST		if %c == 0
+
+imm5:	CONST		if range(%c, 0, 31)
+
+simm:	CONST		if (masked_range(%c, 0, 0, 4095) || masked_range(%c, 12, 0, 4095))
+
+pimm8:	CONST		if masked_range(%c, 3, 0, 4095)
+pimm4:	CONST		if masked_range(%c, 2, 0, 4095)
+pimm2:	CONST		if masked_range(%c, 1, 0, 4095)
+pimm1:	CONST		if masked_range(%c, 0, 0, 4095)
+
+imm16:	CONST		if range(%c, 0, 65535)
+
+bimm:	CONST		if bitmask(%c)
+
+bit:	CONST		if power_of_two(%c)
+
+one:	CONST		if %c == 1
+ones:	CONST		if %c == -1 && false	// FIXME
+
 
 // !!! WARNING !!! this '%rt' things is an horrible hackery
 reg:	CONST		[4] => ldr	%rt, =%c0
 reg:	CONST		[2] => movw	%rt, #:lower16:%c0;  movt	%rt, #:upper16:%c0
-reg:	imm16		[1] => mov	%rt, %c0
+reg:	imm16		[1] => mov	%rt, #%c0
+reg:	bimm		[1] => mov	%rt, #%c0
 
 reg:	COPY(const)	[2] => movw	%rd, #:lower16:%c1;  movt	%rd, #:upper16:%c1
 
@@ -68,7 +68,7 @@ rreg:	ROR(reg, sh)	[1] == %r1 ror %c2
 sxl:	SEXT#L(reg,sh)	== %r1
 zxl:	ZEXT#L(reg,sh)	== %r1
 
-xsh:	CONST		    == %c0 // if range(0, 4)
+xsh:	CONST		if range(%c, 0, 4)
 xt:	ZEXT#B(reg,sh)	    == %r1 uxtb
 xt:	ZEXT#H(reg,sh)	    == %r1 uxth
 xt:	ZEXT#L(reg,sh)	    == %r1 uxtw
