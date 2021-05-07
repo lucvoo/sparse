@@ -376,7 +376,7 @@ reg:	SEL(condf, NEG(reg), reg)	[1] => csneg	%rd, %r21, %r3, %a1
 
 asym:	GSYM			[1] => adrp	%rt, %l0; add	%rt, %rt, :lo12:%l0
 asym:	LSYM			[1] => add	%rt, sp, SP@%c0
-reg:	asym			    == %rp	// this make a PSEUDO_REG from a _SYM
+reg:	asym			    == %rp	// this make a PSEUDO_REG from a SYM
 addr:	asym			    == %rp
 
 addr:	reg			    == %r0
