@@ -34,13 +34,12 @@ ones:	CONST		// if == -1
 zero:	ZERO
 const:	CONST
 
-// for now those cannot work: a pseudo is either PSEUDO_VAL or PSEUDO_REG
-// the following is just some hackery to make it seems it is working
-creg:	CONST		[4] => ldr	%rt, =%c0
-creg:	CONST		[2] => movw	%rt, #:lower16:%c0;  movt	%rt, #:upper16:%c0
-reg:	COPY(const)	[2] => movw	%rd, #:lower16:%c0;  movt	%rt, #:upper16:%c0
-creg:	imm16		[1] => mov	%rt, %c0
-reg:	creg		== %rt
+// !!! WARNING !!! this '%rt' things is an horrible hackery
+reg:	CONST		[4] => ldr	%rt, =%c0
+reg:	CONST		[2] => movw	%rt, #:lower16:%c0;  movt	%rt, #:upper16:%c0
+reg:	imm16		[1] => mov	%rt, %c0
+
+reg:	COPY(const)	[2] => movw	%rd, #:lower16:%c1;  movt	%rd, #:upper16:%c1
 
 // TODO: constants synthesis with movn, movz, movk
 
