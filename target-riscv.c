@@ -21,6 +21,7 @@
 #define RISCV_ZIFENCEI	(1 << 11)
 #define RISCV_ZICBOM	(1 << 12)
 #define RISCV_ZIHINTPAUSE	(1 << 13)
+#define RISCV_VECTOR	(1 << 14)
 
 static unsigned int riscv_flags;
 
@@ -41,6 +42,7 @@ static void parse_march_riscv(const char *arg)
 		{ "f",		RISCV_FLOAT|RISCV_FDIV|RISCV_ZICSR },
 		{ "d",		RISCV_DOUBLE|RISCV_FDIV|RISCV_ZICSR },
 		{ "c",		RISCV_COMP },
+		{ "v",		RISCV_VECTOR },
 		{ "_zicsr",	RISCV_ZICSR },
 		{ "_zifencei",	RISCV_ZIFENCEI },
 		{ "_zicbom",	RISCV_ZICBOM },
@@ -139,6 +141,8 @@ static void predefine_riscv(const struct target *self)
 		predefine("__riscv_zicbom", 1, "1");
 	if (riscv_flags & RISCV_ZIHINTPAUSE)
 		predefine("__riscv_zihintpause", 1, "1");
+	if (riscv_flags & RISCV_VECTOR)
+		predefine("__riscv_vector", 1, "1");
 
 	if (cmodel)
 		predefine_strong("__riscv_cmodel_%s", cmodel);
