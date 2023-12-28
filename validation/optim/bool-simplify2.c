@@ -28,10 +28,11 @@ static bool babbb(bool a, bool b, bool c) { return a && b && c; }
  * check-command: test-linearize $file
  *
  * check-output-pattern(20): setne\\.
- * check-output-pattern(4):  seteq\\.
+ * check-output-pattern(3):  seteq\\.
  * check-output-pattern(8): zext\\.
  * check-output-pattern(12): and
  * check-output-pattern(12): or
+ * check-output-pattern(1): not
  * check-output-end
  *
  * check-output-start
@@ -143,7 +144,7 @@ inb:
 bnb:
 .L22:
 	<entry-point>
-	seteq.1     %r93 <- %arg1, $0
+	not.1       %r93 <- %arg1
 	ret.1       %r93
 
 
