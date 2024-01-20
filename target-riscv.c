@@ -42,7 +42,7 @@ static void parse_march_riscv(const char *arg)
 		{ "f",		RISCV_FLOAT|RISCV_FDIV|RISCV_ZICSR },
 		{ "d",		RISCV_DOUBLE|RISCV_FDIV|RISCV_ZICSR },
 		{ "c",		RISCV_COMP },
-		{ "v",		RISCV_VECTOR },
+		{ "v",		RISCV_VECTOR|RISCV_FPU|RISCV_ZICSR },
 		{ "_zicsr",	RISCV_ZICSR },
 		{ "_zifencei",	RISCV_ZIFENCEI },
 		{ "_zicbom",	RISCV_ZICBOM },
