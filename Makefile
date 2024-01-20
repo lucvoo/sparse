@@ -200,7 +200,7 @@ arch := $(shell uname -m)
 ifeq (${MULTIARCH_TRIPLET},x86_64-linux-gnux32)
 arch := x32
 endif
-ifneq ($(filter ${arch},i386 i486 i586 i686 x86_64 amd64),)
+ifneq ($(filter ${arch},i386 i486 i586 i686 x86_64 amd64 aarch64 arm64),)
 LLVM_VERSION:=$(shell $(LLVM_CONFIG) --version)
 LLVM_VERSION_MAJOR:=$(firstword $(subst ., ,$(LLVM_VERSION)))
 ifeq ($(shell expr "$(LLVM_VERSION_MAJOR)" '>=' 3),1)
