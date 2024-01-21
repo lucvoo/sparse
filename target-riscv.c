@@ -141,8 +141,12 @@ static void predefine_riscv(const struct target *self)
 		predefine("__riscv_zicbom", 1, "1");
 	if (riscv_flags & RISCV_ZIHINTPAUSE)
 		predefine("__riscv_zihintpause", 1, "1");
-	if (riscv_flags & RISCV_VECTOR)
+	if (riscv_flags & RISCV_VECTOR) {
 		predefine("__riscv_vector", 1, "1");
+		predefine("__riscv_v_min_vlen", 1, "128");
+		predefine("__riscv_v_elen", 1, "64");
+		predefine("__riscv_v_elen_fp", 1, "64");
+	}
 
 	if (cmodel)
 		predefine_strong("__riscv_cmodel_%s", cmodel);
