@@ -194,7 +194,7 @@ static LLVMTypeRef symbol_type(struct symbol *sym)
 
 	/* don't cache the result for SYM_NODE */
 	if (sym->type == SYM_NODE)
-		return symbol_type(sym->ctype.base_type);
+		sym = sym->ctype.base_type;
 
 	if (sym->aux)
 		return sym->aux;
