@@ -216,6 +216,9 @@ INST_PROGRAMS += sparse-llvm sparsec
 sparse-llvm-cflags := $(LLVM_CFLAGS)
 sparse-llvm-ldflags := $(LLVM_LDFLAGS)
 sparse-llvm-ldlibs := $(LLVM_LIBS)
+ifeq ($(LLVM_VERSION_MAJOR),14)
+sparse-llvm-cflags += -Wno-deprecated-declarations
+endif
 else
 $(warning LLVM 3.0 or later required. Your system has version $(LLVM_VERSION) installed.)
 endif
